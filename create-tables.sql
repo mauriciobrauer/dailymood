@@ -57,18 +57,19 @@ INSERT INTO users (username, display_name, emoji) VALUES
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mood_entries ENABLE ROW LEVEL SECURITY;
 
--- Políticas RLS
+-- Políticas RLS (configuradas para sistema de usuarios personalizado)
 CREATE POLICY "Users are viewable by everyone" ON users
     FOR SELECT USING (true);
 
-CREATE POLICY "Users can view own mood entries" ON mood_entries
-    FOR SELECT USING (auth.uid()::text = user_id::text);
+-- Políticas para mood_entries con sistema de usuarios personalizado
+CREATE POLICY "Allow public read access to mood_entries" ON mood_entries
+    FOR SELECT USING (true);
 
-CREATE POLICY "Users can insert own mood entries" ON mood_entries
-    FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+CREATE POLICY "Allow public insert access to mood_entries" ON mood_entries
+    FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can update own mood entries" ON mood_entries
-    FOR UPDATE USING (auth.uid()::text = user_id::text);
+CREATE POLICY "Allow public update access to mood_entries" ON mood_entries
+    FOR UPDATE USING (true);
 
-CREATE POLICY "Users can delete own mood entries" ON mood_entries
-    FOR DELETE USING (auth.uid()::text = user_id::text);
+CREATE POLICY "Allow public delete access to mood_entries" ON mood_entries
+    FOR DELETE USING (true);
