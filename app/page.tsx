@@ -60,12 +60,6 @@ export default function Home() {
     setCurrentUserName(null)
   }
 
-  const clearStorage = () => {
-    localStorage.clear()
-    setCurrentUser(null)
-    setCurrentUserName(null)
-    window.location.reload()
-  }
 
   const handleMoodSaved = () => {
     // Trigger refresh of history table
@@ -87,14 +81,9 @@ export default function Home() {
               Hola, <span className="font-medium text-foreground">{currentUserName || currentUser}</span>
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={clearStorage} size="sm">
-              Limpiar Cache
-            </Button>
-            <Button variant="outline" onClick={handleLogout}>
-              Cerrar Sesión
-            </Button>
-          </div>
+          <Button variant="outline" onClick={handleLogout}>
+            Cerrar Sesión
+          </Button>
         </div>
 
 
