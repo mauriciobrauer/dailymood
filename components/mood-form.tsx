@@ -46,15 +46,32 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       const now = new Date()
       const today = now.toISOString().split('T')[0] // YYYY-MM-DD format
       
-      const { error: insertError } = await supabase
-        .from('mood_entries')
-        .insert({
-          user_id: userData.id,
-          mood_type: selectedMood,
-          note: note.trim() || null,
-          entry_date: today,
-          mood_timestamp: now.toISOString()
-        })
+      // Try with mood_timestamp first, fallback to basic insert if column doesn't exist
+      let insertError
+      
+      try {
+        const result = await supabase
+          .from('mood_entries')
+          .insert({
+            user_id: userData.id,
+            mood_type: selectedMood,
+            note: note.trim() || null,
+            entry_date: today,
+            mood_timestamp: now.toISOString()
+          })
+        insertError = result.error
+      } catch (error) {
+        // Fallback to basic insert without mood_timestamp
+        const result = await supabase
+          .from('mood_entries')
+          .insert({
+            user_id: userData.id,
+            mood_type: selectedMood,
+            note: note.trim() || null,
+            entry_date: today
+          })
+        insertError = result.error
+      }
 
       if (insertError) {
         throw insertError

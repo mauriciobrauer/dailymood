@@ -31,17 +31,41 @@ export function MoodHistory({ username }: MoodHistoryProps) {
         return
       }
 
-      // Get mood entries for the last 7 days with timestamps
-      const { data: moodData, error: moodError } = await supabase
-        .from('mood_entries')
-        .select(`
-          *,
-          users (*)
-        `)
-        .eq('user_id', userData.id)
-        .gte('mood_timestamp', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .order('mood_timestamp', { ascending: false })
-        .limit(20) // Increased limit since we can have multiple entries per day
+      // Get mood entries for the last 7 days
+      // Try with mood_timestamp first, fallback to entry_date if column doesn't exist yet
+      let moodData, moodError
+      
+      try {
+        // Try the new structure with mood_timestamp
+        const result = await supabase
+          .from('mood_entries')
+          .select(`
+            *,
+            users (*)
+          `)
+          .eq('user_id', userData.id)
+          .gte('mood_timestamp', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .order('mood_timestamp', { ascending: false })
+          .limit(20)
+        
+        moodData = result.data
+        moodError = result.error
+      } catch (error) {
+        // Fallback to old structure with entry_date
+        const result = await supabase
+          .from('mood_entries')
+          .select(`
+            *,
+            users (*)
+          `)
+          .eq('user_id', userData.id)
+          .gte('entry_date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+          .order('created_at', { ascending: false })
+          .limit(20)
+        
+        moodData = result.data
+        moodError = result.error
+      }
 
       if (moodError) {
         console.error('Error loading moods:', moodError)
@@ -93,22 +117,41 @@ export function MoodHistory({ username }: MoodHistoryProps) {
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
 
-    const timeString = date.toLocaleTimeString("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit"
-    })
-
-    if (date.toDateString() === today.toDateString()) {
-      return `Hoy ${timeString}`
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return `Ayer ${timeString}`
-    } else {
-      const dateString = date.toLocaleDateString("es-ES", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
+    // Check if this is a full timestamp or just a date
+    const hasTime = dateString.includes('T') && dateString.includes(':')
+    
+    if (hasTime) {
+      // Full timestamp - show time
+      const timeString = date.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit"
       })
-      return `${dateString} ${timeString}`
+
+      if (date.toDateString() === today.toDateString()) {
+        return `Hoy ${timeString}`
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return `Ayer ${timeString}`
+      } else {
+        const dateStr = date.toLocaleDateString("es-ES", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        })
+        return `${dateStr} ${timeString}`
+      }
+    } else {
+      // Just date - show without time
+      if (date.toDateString() === today.toDateString()) {
+        return "Hoy"
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return "Ayer"
+      } else {
+        return date.toLocaleDateString("es-ES", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        })
+      }
     }
   }
 
@@ -142,7 +185,7 @@ export function MoodHistory({ username }: MoodHistoryProps) {
                   {getMoodIcon(mood.mood_type)}
                   <div>
                     <p className="font-medium text-sm">{getMoodLabel(mood.mood_type)}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(mood.mood_timestamp)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(mood.mood_timestamp || mood.created_at)}</p>
                   </div>
                 </div>
                 <div className="flex-1">
