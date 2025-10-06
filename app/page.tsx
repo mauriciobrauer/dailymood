@@ -6,15 +6,11 @@ import { MoodForm } from "@/components/mood-form"
 import { MoodHistory } from "@/components/mood-history"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, XCircle } from "lucide-react"
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [supabaseStatus, setSupabaseStatus] = useState<'testing' | 'success' | 'error' | null>(null)
-  const [supabaseMessage, setSupabaseMessage] = useState('')
 
   useEffect(() => {
     // Clear localStorage if it contains JSON data (legacy cleanup)
@@ -34,36 +30,7 @@ export default function Home() {
         setCurrentUserName(savedUser)
       }
     }
-    
-    // Test Supabase connection
-    testSupabaseConnection()
   }, [])
-
-  const testSupabaseConnection = async () => {
-    setSupabaseStatus('testing')
-    setSupabaseMessage('Probando conexión...')
-    
-    try {
-      const { data, error } = await supabase
-        .from('mood_entries')
-        .select('*')
-        .limit(1)
-      
-      if (error) {
-        setSupabaseStatus('error')
-        setSupabaseMessage('Error de conexión. Revisa el .env.local o las RLS.')
-        console.error('Supabase error:', error)
-      } else {
-        setSupabaseStatus('success')
-        setSupabaseMessage('Conexión Supabase OK')
-        console.log('Supabase connection successful:', data)
-      }
-    } catch (err) {
-      setSupabaseStatus('error')
-      setSupabaseMessage('Error de conexión. Revisa el .env.local o las RLS.')
-      console.error('Connection error:', err)
-    }
-  }
 
   const handleLogin = async (username: string) => {
     try {
@@ -130,19 +97,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Supabase Connection Status */}
-        {supabaseStatus && (
-          <Alert className={supabaseStatus === 'success' ? 'border-green-500 bg-green-50' : supabaseStatus === 'error' ? 'border-red-500 bg-red-50' : 'border-blue-500 bg-blue-50'}>
-            <div className="flex items-center gap-2">
-              {supabaseStatus === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
-              {supabaseStatus === 'error' && <XCircle className="h-4 w-4 text-red-600" />}
-              {supabaseStatus === 'testing' && <div className="h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />}
-            </div>
-            <AlertDescription className={supabaseStatus === 'success' ? 'text-green-800' : supabaseStatus === 'error' ? 'text-red-800' : 'text-blue-800'}>
-              {supabaseMessage}
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Mood Form */}
         <MoodForm username={currentUser} onMoodSaved={handleMoodSaved} />
