@@ -43,13 +43,17 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       }
 
       // Insert or update mood entry for today
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+      
       const { error: insertError } = await supabase
         .from('mood_entries')
         .upsert({
           user_id: userData.id,
           mood_type: selectedMood,
           note: note.trim() || null,
-          entry_date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+          entry_date: today
+        }, {
+          onConflict: 'user_id,entry_date' // Specify the conflict resolution
         })
 
       if (insertError) {
@@ -59,7 +63,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       // Show success message
       toast({
         title: "Estado de ánimo guardado",
-        description: "Tu estado de ánimo se ha registrado correctamente.",
+        description: "Tu estado de ánimo se ha actualizado correctamente.",
       })
 
       // Reset form
