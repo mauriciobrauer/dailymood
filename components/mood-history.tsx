@@ -31,7 +31,7 @@ export function MoodHistory({ username }: MoodHistoryProps) {
         return
       }
 
-      // Get mood entries for the last 7 days
+      // Get mood entries for the last 7 days with timestamps
       const { data: moodData, error: moodError } = await supabase
         .from('mood_entries')
         .select(`
@@ -39,9 +39,9 @@ export function MoodHistory({ username }: MoodHistoryProps) {
           users (*)
         `)
         .eq('user_id', userData.id)
-        .gte('entry_date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-        .order('entry_date', { ascending: false })
-        .limit(7)
+        .gte('mood_timestamp', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order('mood_timestamp', { ascending: false })
+        .limit(20) // Increased limit since we can have multiple entries per day
 
       if (moodError) {
         console.error('Error loading moods:', moodError)
@@ -93,16 +93,22 @@ export function MoodHistory({ username }: MoodHistoryProps) {
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
 
+    const timeString = date.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit"
+    })
+
     if (date.toDateString() === today.toDateString()) {
-      return "Hoy"
+      return `Hoy ${timeString}`
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Ayer"
+      return `Ayer ${timeString}`
     } else {
-      return date.toLocaleDateString("es-ES", {
+      const dateString = date.toLocaleDateString("es-ES", {
         weekday: "short",
         day: "numeric",
         month: "short",
       })
+      return `${dateString} ${timeString}`
     }
   }
 
@@ -115,8 +121,8 @@ export function MoodHistory({ username }: MoodHistoryProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Historial de los Últimos 7 Días</CardTitle>
-        <CardDescription>Revisa cómo te has sentido recientemente</CardDescription>
+        <CardTitle>Historial de Estados de Ánimo</CardTitle>
+        <CardDescription>Revisa tus estados de ánimo de los últimos 7 días con hora</CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -136,7 +142,7 @@ export function MoodHistory({ username }: MoodHistoryProps) {
                   {getMoodIcon(mood.mood_type)}
                   <div>
                     <p className="font-medium text-sm">{getMoodLabel(mood.mood_type)}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(mood.entry_date)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(mood.mood_timestamp)}</p>
                   </div>
                 </div>
                 <div className="flex-1">
