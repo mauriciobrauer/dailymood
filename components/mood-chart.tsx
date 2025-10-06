@@ -35,6 +35,13 @@ export function MoodChart({ username }: MoodChartProps) {
   )
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date())
   const [isCalendarOpen, setIsCalendarOpen] = useState<'from' | 'to' | null>(null)
+  
+  // Estado para controlar qué líneas están visibles
+  const [visibleLines, setVisibleLines] = useState({
+    happy: true,
+    neutral: true,
+    sad: true
+  })
 
   const loadMoods = async () => {
     try {
@@ -138,6 +145,21 @@ export function MoodChart({ username }: MoodChartProps) {
     setDateTo(new Date())
   }
 
+  const toggleLine = (moodType: 'happy' | 'neutral' | 'sad') => {
+    setVisibleLines(prev => ({
+      ...prev,
+      [moodType]: !prev[moodType]
+    }))
+  }
+
+  const resetLines = () => {
+    setVisibleLines({
+      happy: true,
+      neutral: true,
+      sad: true
+    })
+  }
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -161,12 +183,17 @@ export function MoodChart({ username }: MoodChartProps) {
           <div>
             <CardTitle>Gráfico de Estados de Ánimo</CardTitle>
             <CardDescription>
-              Visualización temporal de tus estados de ánimo
+              Haz clic en las líneas de abajo para mostrar/ocultar cada estado de ánimo
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={resetDateRange}>
-            Últimos 30 días
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={resetLines}>
+              Mostrar todo
+            </Button>
+            <Button variant="outline" size="sm" onClick={resetDateRange}>
+              Últimos 30 días
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -265,6 +292,7 @@ export function MoodChart({ username }: MoodChartProps) {
                   strokeWidth={2}
                   name="Feliz"
                   dot={{ fill: "hsl(142, 76%, 36%)", strokeWidth: 2, r: 4 }}
+                  hide={!visibleLines.happy}
                 />
                 <Line 
                   type="monotone" 
@@ -273,6 +301,7 @@ export function MoodChart({ username }: MoodChartProps) {
                   strokeWidth={2}
                   name="Neutral"
                   dot={{ fill: "hsl(38, 92%, 50%)", strokeWidth: 2, r: 4 }}
+                  hide={!visibleLines.neutral}
                 />
                 <Line 
                   type="monotone" 
@@ -281,33 +310,87 @@ export function MoodChart({ username }: MoodChartProps) {
                   strokeWidth={2}
                   name="Triste"
                   dot={{ fill: "hsl(199, 89%, 48%)", strokeWidth: 2, r: 4 }}
+                  hide={!visibleLines.sad}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* Summary Stats */}
+        {/* Interactive Summary Stats / Line Controls */}
         {chartData.length > 0 && (
           <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-            <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-              <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+            <button
+              onClick={() => toggleLine('happy')}
+              className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 cursor-pointer ${
+                visibleLines.happy 
+                  ? 'bg-green-50 dark:bg-green-950 border-2 border-green-300 dark:border-green-700' 
+                  : 'bg-muted border-2 border-muted-foreground opacity-50'
+              }`}
+            >
+              <p className={`text-2xl font-bold ${
+                visibleLines.happy 
+                  ? 'text-green-700 dark:text-green-300' 
+                  : 'text-muted-foreground'
+              }`}>
                 {chartData.reduce((sum, day) => sum + day.happy, 0)}
               </p>
-              <p className="text-sm text-green-600 dark:text-green-400">Feliz</p>
-            </div>
-            <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
-              <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+              <p className={`text-sm ${
+                visibleLines.happy 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-muted-foreground'
+              }`}>
+                Feliz {visibleLines.happy ? '👁️' : '🙈'}
+              </p>
+            </button>
+            
+            <button
+              onClick={() => toggleLine('neutral')}
+              className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 cursor-pointer ${
+                visibleLines.neutral 
+                  ? 'bg-amber-50 dark:bg-amber-950 border-2 border-amber-300 dark:border-amber-700' 
+                  : 'bg-muted border-2 border-muted-foreground opacity-50'
+              }`}
+            >
+              <p className={`text-2xl font-bold ${
+                visibleLines.neutral 
+                  ? 'text-amber-700 dark:text-amber-300' 
+                  : 'text-muted-foreground'
+              }`}>
                 {chartData.reduce((sum, day) => sum + day.neutral, 0)}
               </p>
-              <p className="text-sm text-amber-600 dark:text-amber-400">Neutral</p>
-            </div>
-            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+              <p className={`text-sm ${
+                visibleLines.neutral 
+                  ? 'text-amber-600 dark:text-amber-400' 
+                  : 'text-muted-foreground'
+              }`}>
+                Neutral {visibleLines.neutral ? '👁️' : '🙈'}
+              </p>
+            </button>
+            
+            <button
+              onClick={() => toggleLine('sad')}
+              className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 cursor-pointer ${
+                visibleLines.sad 
+                  ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-300 dark:border-blue-700' 
+                  : 'bg-muted border-2 border-muted-foreground opacity-50'
+              }`}
+            >
+              <p className={`text-2xl font-bold ${
+                visibleLines.sad 
+                  ? 'text-blue-700 dark:text-blue-300' 
+                  : 'text-muted-foreground'
+              }`}>
                 {chartData.reduce((sum, day) => sum + day.sad, 0)}
               </p>
-              <p className="text-sm text-blue-600 dark:text-blue-400">Triste</p>
-            </div>
+              <p className={`text-sm ${
+                visibleLines.sad 
+                  ? 'text-blue-600 dark:text-blue-400' 
+                  : 'text-muted-foreground'
+              }`}>
+                Triste {visibleLines.sad ? '👁️' : '🙈'}
+              </p>
+            </button>
           </div>
         )}
       </CardContent>
