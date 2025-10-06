@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { LoginScreen } from "@/components/login-screen"
 import { MoodForm } from "@/components/mood-form"
 import { MoodHistory } from "@/components/mood-history"
+import { MoodChart } from "@/components/mood-chart"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 
@@ -89,6 +90,9 @@ export default function Home() {
 
         {/* Mood Form */}
         <MoodForm username={currentUser} onMoodSaved={handleMoodSaved} />
+
+        {/* Mood Chart */}
+        <MoodChart username={currentUser} />
 
         {/* Mood History */}
         <MoodHistory username={currentUser} key={refreshKey} />
