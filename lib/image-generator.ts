@@ -276,7 +276,7 @@ export const DEFAULT_MOOD_IMAGE = 'https://images.unsplash.com/photo-15187918412
  * NOTA: Google Gemini con librería oficial @google/genai
  * 
  * La función callGeminiAPI() utiliza la librería oficial de Google:
- * - Librería: @google/genai (GoogleGenerativeAI)
+ * - Librería: @google/genai (GoogleGenAI)
  * - Modelos intentados en orden:
  *   1. gemini-2.5-flash-image-preview (específico para imágenes)
  *   2. gemini-2.0-flash-exp (experimental)
@@ -292,7 +292,7 @@ export const DEFAULT_MOOD_IMAGE = 'https://images.unsplash.com/photo-15187918412
  * - Fallback: Servicio placeholder si todos fallan
  * 
  * PROCESAMIENTO DE RESPUESTAS:
- * 1. Inicializa GoogleGenerativeAI con API key
+ * 1. Inicializa GoogleGenAI con API key
  * 2. Intenta cada modelo en orden de preferencia
  * 3. Busca URLs de imagen directas en la respuesta
  * 4. Convierte datos base64 a blob URLs si es necesario
