@@ -32,12 +32,12 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`Intentando modelo: ${modelName}`);
         
-        const model = genAI.getGenerativeModel({ model: modelName });
+        // Usar la API correcta de @google/genai
+        const model = genAI.models.get(modelName);
         const result = await model.generateContent(prompt);
-        const response = await result.response;
         
         // Buscar URLs de imagen en la respuesta
-        const text = response.text();
+        const text = result.text || result.response?.text() || '';
         const imageUrl = extractImageUrl(text);
         
         if (imageUrl) {
@@ -97,24 +97,47 @@ function createPromptFromNote(note: string, moodType: string): string {
   const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
   
   const moodContext = {
-    happy: 'alegre y juguetón',
-    neutral: 'tranquilo y sereno',
-    sad: 'melancólico pero tierno'
+    happy: 'muy feliz y juguetón, con una gran sonrisa',
+    neutral: 'tranquilo y sereno, con una expresión calmada',
+    sad: 'un poco triste pero muy tierno, con ojos grandes y expresivos'
   };
   
   const animalMood = moodContext[moodType as keyof typeof moodContext] || 'tierno';
   
-  return `Crea una imagen cómica y tierna de un ${randomAnimal} ${animalMood}, inspirada en esta nota del usuario: "${note}"
+  // Crear contexto específico basado en palabras clave de la nota
+  let specificContext = '';
+  const noteLower = note.toLowerCase();
+  
+  if (noteLower.includes('trabajo') || noteLower.includes('oficina') || noteLower.includes('productivo')) {
+    specificContext = `El ${randomAnimal} está en una oficina o con elementos de trabajo como computadora, papeles, o tazas de café.`;
+  } else if (noteLower.includes('cansado') || noteLower.includes('sueño') || noteLower.includes('dormir')) {
+    specificContext = `El ${randomAnimal} está bostezando, con ojeras, o durmiendo en una posición cómica.`;
+  } else if (noteLower.includes('comida') || noteLower.includes('cena') || noteLower.includes('almuerzo')) {
+    specificContext = `El ${randomAnimal} está comiendo o rodeado de comida, con expresión muy satisfecha.`;
+  } else if (noteLower.includes('ejercicio') || noteLower.includes('gym') || noteLower.includes('correr')) {
+    specificContext = `El ${randomAnimal} está haciendo ejercicio, corriendo, o con ropa deportiva.`;
+  } else if (noteLower.includes('lluvia') || noteLower.includes('mal tiempo')) {
+    specificContext = `El ${randomAnimal} está bajo la lluvia con paraguas o refugiándose, pero manteniendo su ternura.`;
+  } else if (noteLower.includes('amigos') || noteLower.includes('familia') || noteLower.includes('personas')) {
+    specificContext = `El ${randomAnimal} está rodeado de otros animalitos o en una situación social divertida.`;
+  } else {
+    specificContext = `El ${randomAnimal} está en una situación que refleje el contenido de la nota de manera creativa y divertida.`;
+  }
+  
+  return `Crea una imagen adorable y cómica de un ${randomAnimal} ${animalMood}. 
 
-La imagen debe expresar visualmente el sentimiento general de la nota de forma graciosa o exagerada. Usa un estilo ilustrativo colorido, tipo caricatura digital.
+CONTEXTO ESPECÍFICO: ${specificContext}
 
-Ejemplos de lo que busco:
-- Si la nota habla de productividad: un gato con lentes y laptop rodeado de tazas de café sonriendo
-- Si habla de cansancio: un perrito dormido sobre un teclado con ojeras y una taza de café al lado
-- Si habla de felicidad: un gatito saltando con confeti alrededor
-- Si habla de tristeza: un perrito con paraguas bajo la lluvia pero con una sonrisa tierna
+NOTA DEL USUARIO: "${note}"
 
-La imagen debe ser divertida, tierna y hacer alusión indirecta al contenido de la nota.`;
+REQUISITOS DE LA IMAGEN:
+- Estilo: Ilustración digital colorida, tipo caricatura tierna
+- Expresión: El animal debe tener una expresión que refleje el estado de ánimo (${moodType})
+- Composición: La imagen debe ser divertida y hacer alusión al contenido de la nota
+- Calidad: Alta resolución, colores vibrantes, muy tierno y adorable
+- Elementos: Incluir detalles que conecten con la nota del usuario
+
+La imagen debe ser tan tierna que haga sonreír a cualquiera que la vea, pero también debe ser graciosa y relacionada con la nota del usuario.`;
 }
 
 function extractImageUrl(text: string): string | null {
