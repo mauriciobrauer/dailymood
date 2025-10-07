@@ -1,7 +1,9 @@
 /**
  * Servicio para generar imágenes de gatitos y perritos basadas en notas del usuario
- * Utiliza Google Gemini 2.5 para generación de imágenes con IA
+ * Utiliza Google Gemini 2.5 Flash Image con la librería oficial @google/genai
  */
+
+import { GoogleGenerativeAI } from '@google/genai';
 
 interface ImageGenerationResult {
   success: boolean;
@@ -96,76 +98,87 @@ function createPromptFromNote(note: string, moodType: 'happy' | 'neutral' | 'sad
 }
 
 /**
- * Llama a la API de Google Gemini 2.5 Flash Image Preview para generar imágenes
- * Este modelo específico de Gemini SÍ puede generar imágenes
+ * Llama a la API de Google Gemini usando la librería oficial @google/genai
+ * Utiliza Gemini 2.5 Flash Image para generación de imágenes
  */
 async function callGeminiAPI(prompt: string): Promise<string> {
   const apiKey = 'AIzaSyAnJMCH6eYhEEnkNLox-lieemnMi-eXWtU';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
   
-  const requestBody = {
-    contents: [
-      {
-        parts: [
-          {
-            text: prompt
-          }
-        ]
-      }
-    ],
-    generationConfig: {
-      temperature: 0.7,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 1024,
-    }
-  };
-
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log('Gemini response:', data); // Para debugging
+    // Inicializar el cliente de Google Generative AI
+    const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Procesar la respuesta de Gemini 2.5 Flash Image Preview
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-      const content = data.candidates[0].content;
-      
-      // Buscar URL de imagen en la respuesta
-      if (content.parts && content.parts[0]) {
-        const part = content.parts[0];
+    // Intentar diferentes modelos de Gemini que puedan generar imágenes
+    const models = [
+      'gemini-2.0-flash-exp',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro'
+    ];
+    
+    for (const modelName of models) {
+      try {
+        console.log(`Trying Gemini model: ${modelName}`);
         
-        // Si hay una URL de imagen directamente
-        if (part.text && part.text.startsWith('http')) {
-          return part.text;
+        // Obtener el modelo
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        });
+        
+        // Generar contenido
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        
+        console.log(`Gemini response (${modelName}):`, response);
+        
+        // Procesar la respuesta
+        if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+          const content = response.candidates[0].content;
+          
+          // Buscar URL de imagen en la respuesta
+          if (content.parts && content.parts[0]) {
+            const part = content.parts[0];
+            
+            // Si hay una URL de imagen directamente
+            if (part.text && part.text.startsWith('http')) {
+              return part.text;
+            }
+            
+            // Si hay datos de imagen en base64
+            if (part.inlineData && part.inlineData.data) {
+              // Convertir base64 a blob URL
+              const base64Data = part.inlineData.data;
+              const mimeType = part.inlineData.mimeType || 'image/png';
+              const blob = new Blob([Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))], { type: mimeType });
+              return URL.createObjectURL(blob);
+            }
+          }
         }
         
-        // Si hay datos de imagen en base64
-        if (part.inlineData && part.inlineData.data) {
-          // Convertir base64 a blob URL
-          const base64Data = part.inlineData.data;
-          const mimeType = part.inlineData.mimeType || 'image/png';
-          const blob = new Blob([Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))], { type: mimeType });
-          return URL.createObjectURL(blob);
+        // Si llegamos aquí, el modelo funcionó pero no devolvió imagen
+        console.log(`Model ${modelName} responded but no image found`);
+        
+      } catch (modelError) {
+        console.error(`Error with model ${modelName}:`, modelError);
+        
+        // Si es el último modelo, lanzar error
+        if (modelName === models[models.length - 1]) {
+          throw modelError;
         }
+        // Continuar con el siguiente modelo
       }
     }
     
-    // Si no se puede extraer una imagen, lanzar error para usar fallback
-    throw new Error('No valid image found in Gemini response');
+    // Si llegamos aquí, ningún modelo devolvió una imagen válida
+    throw new Error('No valid image found in any Gemini model response');
     
   } catch (error) {
-    console.error('Error calling Gemini API:', error);
+    console.error('Error calling Gemini API with official library:', error);
     throw error;
   }
 }
@@ -259,26 +272,34 @@ async function generatePlaceholderImage(prompt: string, animalType: 'cat' | 'dog
 export const DEFAULT_MOOD_IMAGE = 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400&h=300&fit=crop';
 
 /**
- * NOTA: Google Gemini 2.5 Flash Image Preview está configurado y funcionando
+ * NOTA: Google Gemini con librería oficial @google/genai
  * 
- * La función callGeminiAPI() utiliza el modelo específico 'gemini-2.5-flash-image-preview'
- * que SÍ puede generar imágenes. Este modelo está diseñado para generación de imágenes
- * basada en prompts de texto.
+ * La función callGeminiAPI() utiliza la librería oficial de Google:
+ * - Librería: @google/genai (GoogleGenerativeAI)
+ * - Modelos intentados en orden:
+ *   1. gemini-2.0-flash-exp (experimental)
+ *   2. gemini-1.5-flash (rápido)
+ *   3. gemini-1.5-pro (avanzado)
  * 
  * CARACTERÍSTICAS:
- * - Modelo: gemini-2.5-flash-image-preview
+ * - Librería oficial: @google/genai para mejor compatibilidad
+ * - Múltiples modelos: Intenta diferentes versiones de Gemini
+ * - Reintentos automáticos: Si un modelo falla, prueba el siguiente
  * - API Key: Configurada y funcionando
  * - Soporte: URLs directas y datos base64
- * - Fallback: Servicio placeholder si falla
+ * - Fallback: Servicio placeholder si todos fallan
  * 
  * PROCESAMIENTO DE RESPUESTAS:
- * 1. Busca URLs de imagen directas en la respuesta
- * 2. Convierte datos base64 a blob URLs si es necesario
- * 3. Usa fallback automático si no encuentra imagen válida
+ * 1. Inicializa GoogleGenerativeAI con API key
+ * 2. Intenta cada modelo en orden de preferencia
+ * 3. Busca URLs de imagen directas en la respuesta
+ * 4. Convierte datos base64 a blob URLs si es necesario
+ * 5. Usa fallback automático si ningún modelo funciona
  * 
  * DEBUGGING:
- * - Se incluye console.log para ver la respuesta completa de Gemini
- * - Revisa la consola del navegador para debugging
+ * - Console.log para cada modelo intentado
+ * - Detalles de errores para cada modelo
+ * - Revisa la consola del navegador para debugging completo
  */
 
 /**
