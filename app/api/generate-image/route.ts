@@ -10,7 +10,7 @@ function createPollinationsPrompt(note: string, moodType: string): string {
     cansado: ["cansado", "agotado", "fatiga", "sueño", "dormir", "agotado"],
     feliz: ["feliz", "alegre", "contento", "genial", "increíble", "fantástico", "maravilloso"],
     triste: ["triste", "deprimido", "melancólico", "llorar", "mal", "deprimido"],
-    comida: ["comida", "cenar", "almorzar", "desayunar", "cocinar", "restaurante", "cena"],
+    comida: ["comida", "cenar", "almorzar", "desayunar", "cocinar", "restaurante", "cena", "pan", "comí", "comer", "hambre", "hambriento", "desayuno", "almuerzo", "cena", "snack", "merienda"],
     ejercicio: ["gym", "ejercicio", "correr", "caminar", "deporte", "entrenar"],
     familia: ["familia", "mamá", "papá", "hermano", "hermana", "abuela", "padres"],
     amigos: ["amigos", "amiga", "fiesta", "celebración", "reunión", "compañeros"],
@@ -43,7 +43,7 @@ function createPollinationsPrompt(note: string, moodType: string): string {
           context = "looking melancholic with big sad eyes, maybe holding a tissue, but still incredibly cute";
           break;
         case "comida":
-          context = "sitting at a table surrounded by delicious food, looking excited and hungry, maybe with a bib";
+          context = "eating bread or food, with crumbs around mouth, looking satisfied and happy, sitting at a table with food";
           break;
         case "ejercicio":
           context = "wearing tiny workout clothes, lifting weights or running, looking determined and sweaty but cute";
@@ -85,8 +85,8 @@ function createPollinationsPrompt(note: string, moodType: string): string {
   }
 
   // Pollinations.AI funciona mejor con prompts en inglés y más directos
-  // Cambiar de cartoon a más realista pero manteniendo el humor
-  return `${animal}, ${context}, photorealistic style, cute and funny expression, realistic fur texture, adorable eyes, humorous situation, high quality, detailed, natural lighting`;
+  // Hacer más realista y menos caricaturesco
+  return `${animal}, ${context}, realistic photography style, natural expression, real fur texture, authentic look, humorous but believable, high quality, detailed, soft natural lighting, not cartoon, not anime, not illustration`;
 }
 
 export async function POST(request: Request) {
