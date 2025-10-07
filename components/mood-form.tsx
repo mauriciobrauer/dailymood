@@ -241,7 +241,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
   ]
 
   return (
-    <>
+    <div>
       <Card>
         <CardHeader>
           <CardTitle>¿Cómo te sientes hoy?</CardTitle>
@@ -355,6 +355,6 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
