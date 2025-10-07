@@ -190,7 +190,27 @@ export function MoodHistory({ username }: MoodHistoryProps) {
                 </div>
                 <div className="flex-1">
                   {mood.note ? (
-                    <p className="text-sm text-foreground leading-relaxed">{mood.note}</p>
+                    <div className="space-y-3">
+                      <p className="text-sm text-foreground leading-relaxed">{mood.note}</p>
+                      {mood.mood_image_url && (
+                        <div className="mt-2">
+                          <img
+                            src={mood.mood_image_url}
+                            alt={`Imagen generada para: ${mood.note.slice(0, 50)}...`}
+                            className="w-full max-w-xs rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow duration-200"
+                            onError={(e) => {
+                              // Fallback si la imagen falla al cargar
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400&h=300&fit=crop';
+                              target.alt = 'Imagen por defecto - gatito dormido';
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            🎨 Imagen generada por IA
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-sm text-muted-foreground italic">Sin nota</p>
                   )}

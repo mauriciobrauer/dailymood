@@ -13,6 +13,8 @@ export interface MoodEntry {
   mood_type: 'happy' | 'neutral' | 'sad'
   note: string | null
   entry_date: string
+  mood_timestamp?: string | null
+  mood_image_url?: string | null
   created_at: string
   updated_at: string
 }

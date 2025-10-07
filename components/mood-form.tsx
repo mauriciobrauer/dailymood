@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Smile, Meh, Frown } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
+import { generateMoodImage, DEFAULT_MOOD_IMAGE } from "@/lib/image-generator"
 
 type MoodType = "happy" | "neutral" | "sad"
 
@@ -21,6 +22,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null)
   const [note, setNote] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
   const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,6 +31,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
     if (!selectedMood) return
 
     setIsSaving(true)
+    setIsGeneratingImage(true)
 
     try {
       // Get user ID from username
@@ -42,11 +45,35 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
         throw new Error('Usuario no encontrado')
       }
 
+      // Generate image based on note and mood (only if note exists)
+      let imageUrl = null
+      if (note.trim()) {
+        try {
+          const imageResult = await generateMoodImage({
+            note: note.trim(),
+            moodType: selectedMood
+          })
+          
+          if (imageResult.success && imageResult.imageUrl) {
+            imageUrl = imageResult.imageUrl
+          } else {
+            // Use fallback image if generation fails
+            imageUrl = DEFAULT_MOOD_IMAGE
+          }
+        } catch (imageError) {
+          console.error('Error generating image:', imageError)
+          // Use fallback image if generation fails
+          imageUrl = DEFAULT_MOOD_IMAGE
+        }
+      }
+
+      setIsGeneratingImage(false)
+
       // Insert new mood entry with current timestamp
       const now = new Date()
       const today = now.toISOString().split('T')[0] // YYYY-MM-DD format
       
-      // Try with mood_timestamp first, fallback to basic insert if column doesn't exist
+      // Try with mood_timestamp and image_url first, fallback to basic insert if columns don't exist
       let insertError
       
       try {
@@ -57,11 +84,12 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
             mood_type: selectedMood,
             note: note.trim() || null,
             entry_date: today,
-            mood_timestamp: now.toISOString()
+            mood_timestamp: now.toISOString(),
+            mood_image_url: imageUrl
           })
         insertError = result.error
       } catch (error) {
-        // Fallback to basic insert without mood_timestamp
+        // Fallback to basic insert without mood_timestamp and mood_image_url
         const result = await supabase
           .from('mood_entries')
           .insert({
@@ -78,9 +106,13 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       }
 
       // Show success message
+      const toastMessage = imageUrl 
+        ? "¡Estado de ánimo guardado con imagen personalizada! 🎨"
+        : "¡Estado de ánimo guardado!"
+        
       toast({
-        title: "Estado de ánimo guardado",
-        description: "Tu estado de ánimo se ha registrado correctamente.",
+        title: toastMessage,
+        description: "Tu entrada ha sido registrada exitosamente.",
       })
 
       // Reset form
@@ -97,6 +129,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       })
     } finally {
       setIsSaving(false)
+      setIsGeneratingImage(false)
     }
   }
 
@@ -159,7 +192,11 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
 
           {/* Submit Button */}
           <Button type="submit" disabled={!selectedMood || isSaving} className="w-full" size="lg">
-            {isSaving ? "Guardando..." : "Guardar Estado de Ánimo"}
+            {isSaving ? (
+              isGeneratingImage ? "🎨 Generando imagen..." : "Guardando..."
+            ) : (
+              "Guardar Estado de Ánimo"
+            )}
           </Button>
         </form>
       </CardContent>
