@@ -85,6 +85,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       let insertError
       
       try {
+        // Intentar insert con todos los campos nuevos
         const result = await supabase
           .from('mood_entries')
           .insert({
@@ -99,16 +100,33 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
           })
         insertError = result.error
       } catch (error) {
-        // Fallback to basic insert without mood_timestamp and mood_image_url
-        const result = await supabase
-          .from('mood_entries')
-          .insert({
-            user_id: userData.id,
-            mood_type: selectedMood,
-            note: note.trim() || null,
-            entry_date: today
-          })
-        insertError = result.error
+        console.log('Fallback: intentando insert básico sin campos nuevos')
+        try {
+          // Fallback: intentar sin los campos de debug de imagen
+          const result = await supabase
+            .from('mood_entries')
+            .insert({
+              user_id: userData.id,
+              mood_type: selectedMood,
+              note: note.trim() || null,
+              entry_date: today,
+              mood_timestamp: now.toISOString(),
+              mood_image_url: imageUrl
+            })
+          insertError = result.error
+        } catch (fallbackError) {
+          console.log('Fallback 2: insert básico sin campos opcionales')
+          // Fallback final: insert básico
+          const result = await supabase
+            .from('mood_entries')
+            .insert({
+              user_id: userData.id,
+              mood_type: selectedMood,
+              note: note.trim() || null,
+              entry_date: today
+            })
+          insertError = result.error
+        }
       }
 
       if (insertError) {
