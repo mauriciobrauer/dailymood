@@ -24,6 +24,7 @@ interface ChartDataPoint {
   moodType: string // Para mostrar en tooltip
   originalDate: string // Fecha base sin offset
   dayIndex: number // Índice del punto en el mismo día
+  xIndex: number // Índice secuencial para conexión de línea
 }
 
 export function MoodChart({ username }: MoodChartProps) {
@@ -89,48 +90,34 @@ export function MoodChart({ username }: MoodChartProps) {
   }
 
   const processChartData = (moodEntries: MoodEntryWithUser[]) => {
-    // Group moods by date and create spaced points for same day
-    const groupedByDate: { [key: string]: MoodEntryWithUser[] } = {}
-    
-    moodEntries.forEach(mood => {
-      const dateKey = new Date(mood.mood_timestamp || mood.created_at).toISOString().split('T')[0]
-      if (!groupedByDate[dateKey]) {
-        groupedByDate[dateKey] = []
-      }
-      groupedByDate[dateKey].push(mood)
-    })
+    // Sort all moods by timestamp first
+    const sortedMoods = moodEntries.sort((a, b) => 
+      new Date(a.mood_timestamp || a.created_at).getTime() - 
+      new Date(b.mood_timestamp || b.created_at).getTime()
+    )
 
-    // Convert to chart data with horizontal spacing for same day
+    // Convert to chart data with sequential x-coordinates
     const chartDataArray: ChartDataPoint[] = []
     
-    Object.entries(groupedByDate).forEach(([dateKey, moods]) => {
-      const sortedMoods = moods.sort((a, b) => 
-        new Date(a.mood_timestamp || a.created_at).getTime() - 
-        new Date(b.mood_timestamp || b.created_at).getTime()
-      )
+    sortedMoods.forEach((mood, index) => {
+      const moodTimestamp = new Date(mood.mood_timestamp || mood.created_at)
+      const moodValue = mood.mood_type === 'happy' ? 1 : mood.mood_type === 'neutral' ? 2 : 3
+      const moodTypeLabel = mood.mood_type === 'happy' ? 'Feliz' : mood.mood_type === 'neutral' ? 'Neutral' : 'Triste'
       
-      sortedMoods.forEach((mood, index) => {
-        const moodTimestamp = new Date(mood.mood_timestamp || mood.created_at)
-        const moodValue = mood.mood_type === 'happy' ? 1 : mood.mood_type === 'neutral' ? 2 : 3
-        const moodTypeLabel = mood.mood_type === 'happy' ? 'Feliz' : mood.mood_type === 'neutral' ? 'Neutral' : 'Triste'
-        
-        // Create a unique date string with slight horizontal offset for same day
-        const baseDate = format(moodTimestamp, 'dd/MM', { locale: es })
-        const dateWithOffset = sortedMoods.length > 1 ? `${baseDate} (${index + 1})` : baseDate
-        
-        chartDataArray.push({
-          date: dateWithOffset,
-          mood: moodValue,
-          timestamp: moodTimestamp.toISOString(),
-          moodType: moodTypeLabel,
-          originalDate: baseDate,
-          dayIndex: index
-        })
+      // Use sequential index as x-coordinate for proper line connection
+      const baseDate = format(moodTimestamp, 'dd/MM', { locale: es })
+      const dateWithOffset = `${baseDate} (${index + 1})`
+      
+      chartDataArray.push({
+        date: dateWithOffset,
+        mood: moodValue,
+        timestamp: moodTimestamp.toISOString(),
+        moodType: moodTypeLabel,
+        originalDate: baseDate,
+        dayIndex: index,
+        xIndex: index // Add sequential index for proper line connection
       })
     })
-
-    // Sort by timestamp to maintain chronological order
-    chartDataArray.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
     setChartData(chartDataArray)
   }
@@ -279,9 +266,15 @@ export function MoodChart({ username }: MoodChartProps) {
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" opacity={0.3} />
                 <XAxis 
-                  dataKey="date" 
+                  dataKey="xIndex" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
+                  tickFormatter={(value, index) => {
+                    if (chartData[index]) {
+                      return chartData[index].originalDate
+                    }
+                    return value
+                  }}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
@@ -316,7 +309,7 @@ export function MoodChart({ username }: MoodChartProps) {
                       />
                     )
                   }}
-                  connectNulls={true}
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
