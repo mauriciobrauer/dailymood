@@ -84,9 +84,27 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       // Try with mood_timestamp and image_url first, fallback to basic insert if columns don't exist
       let insertError
       
-      try {
-        // Intentar insert con todos los campos nuevos
-        const result = await supabase
+      // Intentar insert con todos los campos nuevos primero
+      let result = await supabase
+        .from('mood_entries')
+        .insert({
+          user_id: userData.id,
+          mood_type: selectedMood,
+          note: note.trim() || null,
+          entry_date: today,
+          mood_timestamp: now.toISOString(),
+          mood_image_url: imageUrl,
+          mood_image_model: imageModel,
+          mood_image_prompt: imagePrompt
+        })
+      
+      insertError = result.error
+      
+      // Si hay error de columna no encontrada, intentar fallback
+      if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('mood_image_model'))) {
+        console.log('Fallback: columnas de debug no existen, intentando sin ellas')
+        
+        result = await supabase
           .from('mood_entries')
           .insert({
             user_id: userData.id,
@@ -94,30 +112,16 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
             note: note.trim() || null,
             entry_date: today,
             mood_timestamp: now.toISOString(),
-            mood_image_url: imageUrl,
-            mood_image_model: imageModel,
-            mood_image_prompt: imagePrompt
+            mood_image_url: imageUrl
           })
+        
         insertError = result.error
-      } catch (error) {
-        console.log('Fallback: intentando insert básico sin campos nuevos')
-        try {
-          // Fallback: intentar sin los campos de debug de imagen
-          const result = await supabase
-            .from('mood_entries')
-            .insert({
-              user_id: userData.id,
-              mood_type: selectedMood,
-              note: note.trim() || null,
-              entry_date: today,
-              mood_timestamp: now.toISOString(),
-              mood_image_url: imageUrl
-            })
-          insertError = result.error
-        } catch (fallbackError) {
-          console.log('Fallback 2: insert básico sin campos opcionales')
-          // Fallback final: insert básico
-          const result = await supabase
+        
+        // Si aún hay error, intentar fallback final
+        if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('mood_image_url'))) {
+          console.log('Fallback 2: columnas de imagen no existen, insert básico')
+          
+          result = await supabase
             .from('mood_entries')
             .insert({
               user_id: userData.id,
@@ -125,6 +129,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
               note: note.trim() || null,
               entry_date: today
             })
+          
           insertError = result.error
         }
       }
