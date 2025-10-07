@@ -22,6 +22,8 @@ interface ChartDataPoint {
   mood: number // 1=Feliz, 2=Neutral, 3=Triste
   timestamp: string
   moodType: string // Para mostrar en tooltip
+  originalDate: string // Fecha base sin offset
+  dayIndex: number // Índice del punto en el mismo día
 }
 
 export function MoodChart({ username }: MoodChartProps) {
@@ -87,21 +89,48 @@ export function MoodChart({ username }: MoodChartProps) {
   }
 
   const processChartData = (moodEntries: MoodEntryWithUser[]) => {
-    // Convert each mood entry to a chart data point
-    const chartDataArray = moodEntries
-      .map(mood => {
+    // Group moods by date and create spaced points for same day
+    const groupedByDate: { [key: string]: MoodEntryWithUser[] } = {}
+    
+    moodEntries.forEach(mood => {
+      const dateKey = new Date(mood.mood_timestamp || mood.created_at).toISOString().split('T')[0]
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = []
+      }
+      groupedByDate[dateKey].push(mood)
+    })
+
+    // Convert to chart data with horizontal spacing for same day
+    const chartDataArray: ChartDataPoint[] = []
+    
+    Object.entries(groupedByDate).forEach(([dateKey, moods]) => {
+      const sortedMoods = moods.sort((a, b) => 
+        new Date(a.mood_timestamp || a.created_at).getTime() - 
+        new Date(b.mood_timestamp || b.created_at).getTime()
+      )
+      
+      sortedMoods.forEach((mood, index) => {
         const moodTimestamp = new Date(mood.mood_timestamp || mood.created_at)
         const moodValue = mood.mood_type === 'happy' ? 1 : mood.mood_type === 'neutral' ? 2 : 3
         const moodTypeLabel = mood.mood_type === 'happy' ? 'Feliz' : mood.mood_type === 'neutral' ? 'Neutral' : 'Triste'
         
-        return {
-          date: format(moodTimestamp, 'dd/MM HH:mm', { locale: es }),
+        // Create a unique date string with slight horizontal offset for same day
+        const baseDate = format(moodTimestamp, 'dd/MM', { locale: es })
+        const dateWithOffset = sortedMoods.length > 1 ? `${baseDate} (${index + 1})` : baseDate
+        
+        chartDataArray.push({
+          date: dateWithOffset,
           mood: moodValue,
           timestamp: moodTimestamp.toISOString(),
-          moodType: moodTypeLabel
-        }
+          moodType: moodTypeLabel,
+          originalDate: baseDate,
+          dayIndex: index
+        })
       })
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    })
+
+    // Sort by timestamp to maintain chronological order
+    chartDataArray.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
     setChartData(chartDataArray)
   }
@@ -135,13 +164,20 @@ export function MoodChart({ username }: MoodChartProps) {
       const data = payload[0].payload
       const moodLabel = data.moodType
       const moodValue = data.mood
+      const timestamp = new Date(data.timestamp)
+      const timeStr = format(timestamp, 'HH:mm', { locale: es })
       
       return (
         <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-medium text-foreground mb-2">{label}</p>
+          <p className="font-medium text-foreground mb-2">{data.originalDate} - {timeStr}</p>
           <p className="text-sm" style={{ color: getMoodColor(moodValue) }}>
             Estado: {moodLabel} ({moodValue === 1 ? '😊' : moodValue === 2 ? '😐' : '😢'})
           </p>
+          {data.dayIndex > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Punto #{data.dayIndex + 1} del día
+            </p>
+          )}
         </div>
       )
     }
@@ -280,7 +316,7 @@ export function MoodChart({ username }: MoodChartProps) {
                       />
                     )
                   }}
-                  connectNulls={false}
+                  connectNulls={true}
                 />
               </LineChart>
             </ResponsiveContainer>
