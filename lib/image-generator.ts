@@ -3,7 +3,7 @@
  * Utiliza Google Gemini 2.5 Flash Image con la librería oficial @google/genai
  */
 
-import { GoogleGenAI } from '@google/genai';
+import * as genai from '@google/genai';
 
 interface ImageGenerationResult {
   success: boolean;
@@ -106,7 +106,7 @@ async function callGeminiAPI(prompt: string): Promise<string> {
   
   try {
     // Inicializar el cliente de Google Generative AI
-    const genAI = new GoogleGenAI(apiKey);
+    const genAI = new genai.GoogleGenAI(apiKey);
     
     // Intentar diferentes modelos de Gemini que puedan generar imágenes
     const models = [
