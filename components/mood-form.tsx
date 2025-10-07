@@ -47,6 +47,9 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
 
       // Generate image based on note and mood (only if note exists)
       let imageUrl = null
+      let imageModel = null
+      let imagePrompt = null
+      
       if (note.trim()) {
         try {
           const imageResult = await generateMoodImage({
@@ -56,6 +59,11 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
           
           if (imageResult.success && imageResult.imageUrl) {
             imageUrl = imageResult.imageUrl
+            // Extraer información del modelo y prompt si está disponible
+            if (imageResult.debug) {
+              imageModel = imageResult.debug.model
+              imagePrompt = imageResult.debug.prompt
+            }
           } else {
             // Use fallback image if generation fails
             imageUrl = DEFAULT_MOOD_IMAGE
@@ -85,7 +93,9 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
             note: note.trim() || null,
             entry_date: today,
             mood_timestamp: now.toISOString(),
-            mood_image_url: imageUrl
+            mood_image_url: imageUrl,
+            mood_image_model: imageModel,
+            mood_image_prompt: imagePrompt
           })
         insertError = result.error
       } catch (error) {

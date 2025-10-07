@@ -30,22 +30,55 @@ export async function POST(request: NextRequest) {
     
     for (const modelName of models) {
       try {
-        console.log(`Intentando modelo: ${modelName}`);
+        console.log(`🎨 Intentando modelo: ${modelName}`);
+        console.log(`📝 Prompt generado: ${prompt.substring(0, 200)}...`);
         
-        // Usar la API correcta de @google/genai
-        const model = genAI.models.get(modelName);
-        const result = await model.generateContent(prompt);
+        // Usar la API correcta de @google/genai para generar imágenes
+        const result = await genAI.models.generateImages({
+          model: modelName,
+          prompt: prompt
+        });
+        
+        console.log(`✅ Respuesta del modelo ${modelName}:`, JSON.stringify(result, null, 2));
         
         // Buscar URLs de imagen en la respuesta
+        if (result.images && result.images.length > 0) {
+          const imageUrl = result.images[0].url || result.images[0].data;
+          
+          if (imageUrl) {
+            console.log(`🎉 Imagen generada exitosamente con modelo: ${modelName}`);
+            console.log(`🔗 URL de imagen: ${imageUrl}`);
+            return NextResponse.json({ 
+              success: true, 
+              imageUrl,
+              model: modelName,
+              prompt: prompt,
+              debug: {
+                model: modelName,
+                prompt: prompt,
+                response: result
+              }
+            });
+          }
+        }
+        
+        // Si no hay imágenes en la respuesta, buscar en el texto
         const text = result.text || result.response?.text() || '';
         const imageUrl = extractImageUrl(text);
         
         if (imageUrl) {
-          console.log(`Imagen generada exitosamente con modelo: ${modelName}`);
+          console.log(`🎉 Imagen encontrada en texto con modelo: ${modelName}`);
+          console.log(`🔗 URL de imagen: ${imageUrl}`);
           return NextResponse.json({ 
             success: true, 
             imageUrl,
-            model: modelName 
+            model: modelName,
+            prompt: prompt,
+            debug: {
+              model: modelName,
+              prompt: prompt,
+              response: result
+            }
           });
         }
         
@@ -53,16 +86,22 @@ export async function POST(request: NextRequest) {
         const base64Data = extractBase64Data(text);
         if (base64Data) {
           const blobUrl = convertBase64ToBlobUrl(base64Data);
-          console.log(`Imagen generada desde base64 con modelo: ${modelName}`);
+          console.log(`🎉 Imagen generada desde base64 con modelo: ${modelName}`);
           return NextResponse.json({ 
             success: true, 
             imageUrl: blobUrl,
-            model: modelName 
+            model: modelName,
+            prompt: prompt,
+            debug: {
+              model: modelName,
+              prompt: prompt,
+              response: result
+            }
           });
         }
         
       } catch (modelError) {
-        console.log(`Modelo ${modelName} falló:`, modelError);
+        console.log(`❌ Modelo ${modelName} falló:`, modelError);
         continue; // Intentar siguiente modelo
       }
     }

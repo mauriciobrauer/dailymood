@@ -205,9 +205,26 @@ export function MoodHistory({ username }: MoodHistoryProps) {
                               target.alt = 'Imagen por defecto - gatito dormido';
                             }}
                           />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            🎨 Imagen generada por IA
-                          </p>
+                          <div className="mt-1 space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                              🎨 Imagen generada por IA
+                            </p>
+                            {mood.mood_image_model && (
+                              <p className="text-xs text-blue-600 font-medium">
+                                🤖 Modelo: {mood.mood_image_model}
+                              </p>
+                            )}
+                            {mood.mood_image_prompt && (
+                              <details className="text-xs">
+                                <summary className="text-purple-600 font-medium cursor-pointer hover:text-purple-700">
+                                  📝 Ver prompt usado
+                                </summary>
+                                <div className="mt-1 p-2 bg-muted rounded text-xs text-muted-foreground max-w-md">
+                                  {mood.mood_image_prompt}
+                                </div>
+                              </details>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
