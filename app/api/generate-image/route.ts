@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
-// Función para convertir cualquier nota en un prompt visual semántico universal
+// Función para convertir cualquier nota en un prompt visual semántico universal CON PERRO/GATO
 function convertNoteToPrompt(note: string, moodType: string): string {
   console.log(`🎨 Transformando nota semánticamente: "${note}"`);
   
-  // Plantilla base universal que representa la idea de la nota
-  const baseTemplate = `Una escena visual que representa la idea o situación descrita en: "${note}". Describe la escena de manera imaginativa, incluyendo elementos relevantes y el ambiente general.`;
+  // Seleccionar animal aleatoriamente
+  const animal = Math.random() > 0.5 ? "cute dog" : "cute cat";
+  
+  // Plantilla base universal que representa la idea de la nota CON EL ANIMAL
+  const baseTemplate = `Una escena visual que representa la idea o situación descrita en: "${note}". Incluye un ${animal} como protagonista principal de la escena. Describe la escena de manera imaginativa, incluyendo elementos relevantes y el ambiente general.`;
   
   // Heurísticas ligeras para enriquecer el prompt (complementarias, no limitantes)
   const enhancements = [];
