@@ -35,15 +35,9 @@ export async function POST(request: NextRequest) {
         console.log(`🎨 Intentando modelo: ${modelName}`);
         console.log(`📝 Prompt generado: ${prompt.substring(0, 200)}...`);
         
-        // Configuración para generación de imágenes
-        const config = {
-          responseMimeType: 'image/jpeg'
-        };
-        
-        // Crear modelo específico con configuración de imagen
+        // Crear modelo específico (sin configuración especial)
         const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          generationConfig: config
+          model: modelName
         });
         
         // Usar la API correcta de @google/generative-ai para generar imágenes
