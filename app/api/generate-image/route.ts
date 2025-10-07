@@ -1,92 +1,87 @@
 import { NextResponse } from "next/server";
 
-// Función para crear prompt específico para gatitos/perritos con Pollinations.AI
-function createPollinationsPrompt(note: string, moodType: string): string {
-  const animal = Math.random() > 0.5 ? "cute cat" : "cute dog";
+// Función para convertir cualquier nota en un prompt visual semántico universal
+function convertNoteToPrompt(note: string, moodType: string): string {
+  console.log(`🎨 Transformando nota semánticamente: "${note}"`);
   
-  // Detectar palabras clave en la nota para contexto
-  const keywords = {
-    trabajo: ["trabajo", "oficina", "reunión", "jefe", "proyecto", "deadline", "laboral"],
-    cansado: ["cansado", "agotado", "fatiga", "sueño", "dormir", "agotado"],
-    feliz: ["feliz", "alegre", "contento", "genial", "increíble", "fantástico", "maravilloso"],
-    triste: ["triste", "deprimido", "melancólico", "llorar", "mal", "deprimido"],
-    comida: ["comida", "cenar", "almorzar", "desayunar", "cocinar", "restaurante", "cena", "pan", "comí", "comer", "hambre", "hambriento", "desayuno", "almuerzo", "cena", "snack", "merienda"],
-    ejercicio: ["gym", "ejercicio", "correr", "caminar", "deporte", "entrenar"],
-    familia: ["familia", "mamá", "papá", "hermano", "hermana", "abuela", "padres"],
-    amigos: ["amigos", "amiga", "fiesta", "celebración", "reunión", "compañeros"],
-    lluvia: ["llueve", "lluvia", "lluvioso", "tormenta", "llover", "mojado", "paraguas"],
-    sol: ["sol", "soleado", "calor", "playa", "verano", "soleado", "caliente"]
-  };
-
-  let context = "";
-  const noteLower = note.toLowerCase();
+  // Plantilla base universal que representa la idea de la nota
+  const baseTemplate = `Una escena visual que representa la idea o situación descrita en: "${note}". Describe la escena de manera imaginativa, incluyendo elementos relevantes y el ambiente general.`;
   
-  // Debug: mostrar qué palabras se están buscando
-  console.log(`🔍 Buscando palabras clave en: "${noteLower}"`);
+  // Heurísticas ligeras para enriquecer el prompt (complementarias, no limitantes)
+  const enhancements = [];
   
-  for (const [category, words] of Object.entries(keywords)) {
-    const foundWords = words.filter(word => noteLower.includes(word));
-    if (foundWords.length > 0) {
-      console.log(`✅ Categoría detectada: ${category} - Palabras encontradas: ${foundWords.join(', ')}`);
-      
-      switch (category) {
-        case "trabajo":
-          context = "wearing a tiny business suit and sitting at a computer desk with coffee, looking stressed but determined";
-          break;
-        case "cansado":
-          context = "sleeping peacefully with droopy eyes and a cute yawn, looking exhausted but adorable";
-          break;
-        case "feliz":
-          context = "jumping with joy and a huge smile, playing with colorful toys, looking absolutely delighted";
-          break;
-        case "triste":
-          context = "looking melancholic with big sad eyes, maybe holding a tissue, but still incredibly cute";
-          break;
-        case "comida":
-          context = "eating bread or food, with crumbs around mouth, looking satisfied and happy, sitting at a table with food";
-          break;
-        case "ejercicio":
-          context = "wearing tiny workout clothes, lifting weights or running, looking determined and sweaty but cute";
-          break;
-        case "familia":
-          context = "surrounded by other cute animals representing family, looking happy and loved";
-          break;
-        case "amigos":
-          context = "playing and laughing with other cute animals, having a great time together";
-          break;
-        case "lluvia":
-          context = "holding a tiny umbrella, splashing in puddles, looking playful despite the rain";
-          break;
-        case "sol":
-          context = "wearing sunglasses and relaxing at the beach, looking happy and sun-kissed";
-          break;
-      }
-      break;
+  // Detectar comida (heurística ligera)
+  const foodKeywords = ["comí", "comer", "comida", "torta", "pan", "cena", "almuerzo", "desayuno", "pizza", "hamburguesa", "sandwich", "postre", "dulce", "helado", "pastel"];
+  const hasFood = foodKeywords.some(keyword => note.toLowerCase().includes(keyword));
+  if (hasFood) {
+    enhancements.push("comida deliciosa", "mesa servida", "ambiente gastronómico");
+  }
+  
+  // Detectar clima (heurística ligera)
+  const weatherKeywords = ["llueve", "lluvia", "sol", "soleado", "nublado", "tormenta", "calor", "frío", "atardecer", "amanecer"];
+  const hasWeather = weatherKeywords.some(keyword => note.toLowerCase().includes(keyword));
+  if (hasWeather) {
+    if (note.toLowerCase().includes("lluvia") || note.toLowerCase().includes("llueve")) {
+      enhancements.push("día lluvioso", "paraguas", "reflejos en el pavimento");
+    } else if (note.toLowerCase().includes("sol") || note.toLowerCase().includes("soleado")) {
+      enhancements.push("día soleado", "luz dorada", "ambiente cálido");
+    } else if (note.toLowerCase().includes("atardecer")) {
+      enhancements.push("atardecer dorado", "cielo naranja", "luz cálida");
     }
   }
   
-  if (!context) {
-    console.log(`❌ No se detectó contexto específico, usando mood por defecto`);
-  }
-
-  // Si no se detectó contexto específico, usar el mood
-  if (!context) {
-    switch (moodType) {
-      case "happy":
-        context = "jumping with joy and a huge smile, looking absolutely delighted and energetic";
-        break;
-      case "neutral":
-        context = "sitting calmly with a peaceful expression, looking content and relaxed";
-        break;
-      case "sad":
-        context = "looking melancholic with big sad eyes, maybe holding a tissue, but still incredibly cute and lovable";
-        break;
+  // Detectar emociones (heurística ligera)
+  const emotionKeywords = ["feliz", "triste", "cansado", "emocionado", "nervioso", "tranquilo", "melancólico"];
+  const hasEmotion = emotionKeywords.some(keyword => note.toLowerCase().includes(keyword));
+  if (hasEmotion) {
+    if (note.toLowerCase().includes("feliz") || note.toLowerCase().includes("alegre")) {
+      enhancements.push("ambiente alegre", "colores vibrantes");
+    } else if (note.toLowerCase().includes("triste") || note.toLowerCase().includes("melancólico")) {
+      enhancements.push("atmósfera melancólica", "tonos suaves");
+    } else if (note.toLowerCase().includes("cansado") || note.toLowerCase().includes("agotado")) {
+      enhancements.push("ambiente relajado", "luz tenue");
     }
   }
-
-  // Pollinations.AI funciona mejor con prompts en inglés y más directos
-  // Hacer más realista y menos caricaturesco
-  return `${animal}, ${context}, realistic photography style, natural expression, real fur texture, authentic look, humorous but believable, high quality, detailed, soft natural lighting, not cartoon, not anime, not illustration`;
+  
+  // Detectar actividades (heurística ligera)
+  const activityKeywords = ["trabajo", "gym", "ejercicio", "correr", "caminar", "estudiar", "leer", "soñé", "sueño"];
+  const hasActivity = activityKeywords.some(keyword => note.toLowerCase().includes(keyword));
+  if (hasActivity) {
+    if (note.toLowerCase().includes("gym") || note.toLowerCase().includes("ejercicio")) {
+      enhancements.push("ambiente deportivo", "energía activa");
+    } else if (note.toLowerCase().includes("trabajo") || note.toLowerCase().includes("oficina")) {
+      enhancements.push("ambiente profesional", "luz de oficina");
+    } else if (note.toLowerCase().includes("soñé") || note.toLowerCase().includes("sueño")) {
+      enhancements.push("atmósfera onírica", "elementos surrealistas");
+    }
+  }
+  
+  // Detectar lugares (heurística ligera)
+  const placeKeywords = ["casa", "bosque", "playa", "montaña", "ciudad", "parque", "restaurante"];
+  const hasPlace = placeKeywords.some(keyword => note.toLowerCase().includes(keyword));
+  if (hasPlace) {
+    if (note.toLowerCase().includes("bosque")) {
+      enhancements.push("vegetación densa", "luz filtrada", "atmósfera natural");
+    } else if (note.toLowerCase().includes("casa")) {
+      enhancements.push("ambiente hogareño", "luz cálida interior");
+    } else if (note.toLowerCase().includes("playa")) {
+      enhancements.push("arena dorada", "mar azul", "brisa marina");
+    }
+  }
+  
+  // Construir el prompt final
+  let finalPrompt = baseTemplate;
+  
+  if (enhancements.length > 0) {
+    finalPrompt += ` Incluye: ${enhancements.join(", ")}.`;
+  }
+  
+  // Añadir estilo visual consistente
+  finalPrompt += " Estilo realista, iluminación cinematográfica, alta calidad, detallado, no caricatura, no anime.";
+  
+  console.log(`📝 Prompt semántico generado: ${finalPrompt}`);
+  
+  return finalPrompt;
 }
 
 export async function POST(request: Request) {
@@ -100,8 +95,8 @@ export async function POST(request: Request) {
 
     console.log(`🎨 Generando imagen con Pollinations.AI para: "${note.substring(0, 50)}..."`);
 
-    // Crear prompt específico
-    const prompt = createPollinationsPrompt(note, moodType);
+    // Crear prompt semántico universal
+    const prompt = convertNoteToPrompt(note, moodType);
     console.log(`📝 Prompt generado: ${prompt}`);
 
     // Pollinations.AI URL - API gratuita sin necesidad de API key
