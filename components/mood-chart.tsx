@@ -19,11 +19,9 @@ interface MoodChartProps {
 
 interface ChartDataPoint {
   date: string
-  happy: number
-  neutral: number
-  sad: number
-  total: number
+  mood: number // 1=Feliz, 2=Neutral, 3=Triste
   timestamp: string
+  moodType: string // Para mostrar en tooltip
 }
 
 export function MoodChart({ username }: MoodChartProps) {
@@ -35,13 +33,6 @@ export function MoodChart({ username }: MoodChartProps) {
   )
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date())
   const [isCalendarOpen, setIsCalendarOpen] = useState<'from' | 'to' | null>(null)
-  
-  // Estado para controlar qué líneas están visibles
-  const [visibleLines, setVisibleLines] = useState({
-    happy: true,
-    neutral: true,
-    sad: true
-  })
 
   const loadMoods = async () => {
     try {
@@ -96,36 +87,20 @@ export function MoodChart({ username }: MoodChartProps) {
   }
 
   const processChartData = (moodEntries: MoodEntryWithUser[]) => {
-    // Group moods by date and count each type
-    const groupedByDate: { [key: string]: { happy: number; neutral: number; sad: number; total: number; timestamp: string } } = {}
-
-    moodEntries.forEach(mood => {
-      const dateKey = new Date(mood.mood_timestamp || mood.created_at).toISOString().split('T')[0]
-      
-      if (!groupedByDate[dateKey]) {
-        groupedByDate[dateKey] = {
-          happy: 0,
-          neutral: 0,
-          sad: 0,
-          total: 0,
-          timestamp: dateKey
+    // Convert each mood entry to a chart data point
+    const chartDataArray = moodEntries
+      .map(mood => {
+        const moodTimestamp = new Date(mood.mood_timestamp || mood.created_at)
+        const moodValue = mood.mood_type === 'happy' ? 1 : mood.mood_type === 'neutral' ? 2 : 3
+        const moodTypeLabel = mood.mood_type === 'happy' ? 'Feliz' : mood.mood_type === 'neutral' ? 'Neutral' : 'Triste'
+        
+        return {
+          date: format(moodTimestamp, 'dd/MM HH:mm', { locale: es }),
+          mood: moodValue,
+          timestamp: moodTimestamp.toISOString(),
+          moodType: moodTypeLabel
         }
-      }
-
-      groupedByDate[dateKey][mood.mood_type]++
-      groupedByDate[dateKey].total++
-    })
-
-    // Convert to array and format for chart
-    const chartDataArray = Object.entries(groupedByDate)
-      .map(([date, counts]) => ({
-        date: format(new Date(date), 'dd/MM', { locale: es }),
-        happy: counts.happy,
-        neutral: counts.neutral,
-        sad: counts.sad,
-        total: counts.total,
-        timestamp: date
-      }))
+      })
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
     setChartData(chartDataArray)
@@ -145,31 +120,28 @@ export function MoodChart({ username }: MoodChartProps) {
     setDateTo(new Date())
   }
 
-  const toggleLine = (moodType: 'happy' | 'neutral' | 'sad') => {
-    setVisibleLines(prev => ({
-      ...prev,
-      [moodType]: !prev[moodType]
-    }))
-  }
-
-  const resetLines = () => {
-    setVisibleLines({
-      happy: true,
-      neutral: true,
-      sad: true
-    })
+  // Función para obtener el color del punto basado en el valor del mood
+  const getMoodColor = (moodValue: number) => {
+    switch (moodValue) {
+      case 1: return "hsl(142, 76%, 36%)" // Verde para Feliz
+      case 2: return "hsl(38, 92%, 50%)"  // Amarillo para Neutral
+      case 3: return "hsl(199, 89%, 48%)" // Azul para Triste
+      default: return "hsl(var(--muted-foreground))"
+    }
   }
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload
+      const moodLabel = data.moodType
+      const moodValue = data.mood
+      
       return (
         <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
           <p className="font-medium text-foreground mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value} {entry.value === 1 ? 'entrada' : 'entradas'}
-            </p>
-          ))}
+          <p className="text-sm" style={{ color: getMoodColor(moodValue) }}>
+            Estado: {moodLabel} ({moodValue === 1 ? '😊' : moodValue === 2 ? '😐' : '😢'})
+          </p>
         </div>
       )
     }
@@ -181,15 +153,12 @@ export function MoodChart({ username }: MoodChartProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Gráfico de Estados de Ánimo</CardTitle>
+            <CardTitle>Evolución del Estado de Ánimo</CardTitle>
             <CardDescription>
-              Haz clic en las líneas de abajo para mostrar/ocultar cada estado de ánimo
+              Línea temporal: 1=Feliz, 2=Neutral, 3=Triste
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={resetLines}>
-              Mostrar todo
-            </Button>
             <Button variant="outline" size="sm" onClick={resetDateRange}>
               Últimos 30 días
             </Button>
@@ -281,116 +250,72 @@ export function MoodChart({ username }: MoodChartProps) {
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  allowDecimals={false}
+                  domain={[0.5, 3.5]}
+                  ticks={[1, 2, 3]}
+                  tickFormatter={(value) => {
+                    switch (value) {
+                      case 1: return 'Feliz'
+                      case 2: return 'Neutral'
+                      case 3: return 'Triste'
+                      default: return value
+                    }
+                  }}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend />
                 <Line 
                   type="monotone" 
-                  dataKey="happy" 
-                  stroke="hsl(142, 76%, 36%)" 
+                  dataKey="mood" 
+                  stroke="hsl(var(--primary))" 
                   strokeWidth={2}
-                  name="Feliz"
-                  dot={{ fill: "hsl(142, 76%, 36%)", strokeWidth: 2, r: 4 }}
-                  hide={!visibleLines.happy}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="neutral" 
-                  stroke="hsl(38, 92%, 50%)" 
-                  strokeWidth={2}
-                  name="Neutral"
-                  dot={{ fill: "hsl(38, 92%, 50%)", strokeWidth: 2, r: 4 }}
-                  hide={!visibleLines.neutral}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="sad" 
-                  stroke="hsl(199, 89%, 48%)" 
-                  strokeWidth={2}
-                  name="Triste"
-                  dot={{ fill: "hsl(199, 89%, 48%)", strokeWidth: 2, r: 4 }}
-                  hide={!visibleLines.sad}
+                  dot={(props) => {
+                    const { cx, cy, payload } = props
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={4}
+                        fill={getMoodColor(payload.mood)}
+                        stroke="white"
+                        strokeWidth={2}
+                      />
+                    )
+                  }}
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* Interactive Summary Stats / Line Controls */}
+        {/* Summary Stats */}
         {chartData.length > 0 && (
           <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-            <button
-              onClick={() => toggleLine('happy')}
-              className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 cursor-pointer ${
-                visibleLines.happy 
-                  ? 'bg-green-50 dark:bg-green-950 border-2 border-green-300 dark:border-green-700' 
-                  : 'bg-muted border-2 border-muted-foreground opacity-50'
-              }`}
-            >
-              <p className={`text-2xl font-bold ${
-                visibleLines.happy 
-                  ? 'text-green-700 dark:text-green-300' 
-                  : 'text-muted-foreground'
-              }`}>
-                {chartData.reduce((sum, day) => sum + day.happy, 0)}
+            <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950 border-2 border-green-300 dark:border-green-700">
+              <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                {chartData.filter(point => point.mood === 1).length}
               </p>
-              <p className={`text-sm ${
-                visibleLines.happy 
-                  ? 'text-green-600 dark:text-green-400' 
-                  : 'text-muted-foreground'
-              }`}>
-                Feliz {visibleLines.happy ? '👁️' : '🙈'}
+              <p className="text-sm text-green-600 dark:text-green-400">
+                Feliz 😊
               </p>
-            </button>
+            </div>
             
-            <button
-              onClick={() => toggleLine('neutral')}
-              className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 cursor-pointer ${
-                visibleLines.neutral 
-                  ? 'bg-amber-50 dark:bg-amber-950 border-2 border-amber-300 dark:border-amber-700' 
-                  : 'bg-muted border-2 border-muted-foreground opacity-50'
-              }`}
-            >
-              <p className={`text-2xl font-bold ${
-                visibleLines.neutral 
-                  ? 'text-amber-700 dark:text-amber-300' 
-                  : 'text-muted-foreground'
-              }`}>
-                {chartData.reduce((sum, day) => sum + day.neutral, 0)}
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950 border-2 border-amber-300 dark:border-amber-700">
+              <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                {chartData.filter(point => point.mood === 2).length}
               </p>
-              <p className={`text-sm ${
-                visibleLines.neutral 
-                  ? 'text-amber-600 dark:text-amber-400' 
-                  : 'text-muted-foreground'
-              }`}>
-                Neutral {visibleLines.neutral ? '👁️' : '🙈'}
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Neutral 😐
               </p>
-            </button>
+            </div>
             
-            <button
-              onClick={() => toggleLine('sad')}
-              className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 cursor-pointer ${
-                visibleLines.sad 
-                  ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-300 dark:border-blue-700' 
-                  : 'bg-muted border-2 border-muted-foreground opacity-50'
-              }`}
-            >
-              <p className={`text-2xl font-bold ${
-                visibleLines.sad 
-                  ? 'text-blue-700 dark:text-blue-300' 
-                  : 'text-muted-foreground'
-              }`}>
-                {chartData.reduce((sum, day) => sum + day.sad, 0)}
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border-2 border-blue-300 dark:border-blue-700">
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                {chartData.filter(point => point.mood === 3).length}
               </p>
-              <p className={`text-sm ${
-                visibleLines.sad 
-                  ? 'text-blue-600 dark:text-blue-400' 
-                  : 'text-muted-foreground'
-              }`}>
-                Triste {visibleLines.sad ? '👁️' : '🙈'}
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                Triste 😢
               </p>
-            </button>
+            </div>
           </div>
         )}
       </CardContent>
