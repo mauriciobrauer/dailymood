@@ -6,23 +6,29 @@ function createPollinationsPrompt(note: string, moodType: string): string {
   
   // Detectar palabras clave en la nota para contexto
   const keywords = {
-    trabajo: ["trabajo", "oficina", "reunión", "jefe", "proyecto", "deadline"],
-    cansado: ["cansado", "agotado", "fatiga", "sueño", "dormir"],
-    feliz: ["feliz", "alegre", "contento", "genial", "increíble", "fantástico"],
-    triste: ["triste", "deprimido", "melancólico", "llorar", "mal"],
-    comida: ["comida", "cenar", "almorzar", "desayunar", "cocinar", "restaurante"],
-    ejercicio: ["gym", "ejercicio", "correr", "caminar", "deporte"],
-    familia: ["familia", "mamá", "papá", "hermano", "hermana", "abuela"],
-    amigos: ["amigos", "amiga", "fiesta", "celebración", "reunión"],
-    lluvia: ["llueve", "lluvia", "lluvioso", "tormenta"],
-    sol: ["sol", "soleado", "calor", "playa", "verano"]
+    trabajo: ["trabajo", "oficina", "reunión", "jefe", "proyecto", "deadline", "laboral"],
+    cansado: ["cansado", "agotado", "fatiga", "sueño", "dormir", "agotado"],
+    feliz: ["feliz", "alegre", "contento", "genial", "increíble", "fantástico", "maravilloso"],
+    triste: ["triste", "deprimido", "melancólico", "llorar", "mal", "deprimido"],
+    comida: ["comida", "cenar", "almorzar", "desayunar", "cocinar", "restaurante", "cena"],
+    ejercicio: ["gym", "ejercicio", "correr", "caminar", "deporte", "entrenar"],
+    familia: ["familia", "mamá", "papá", "hermano", "hermana", "abuela", "padres"],
+    amigos: ["amigos", "amiga", "fiesta", "celebración", "reunión", "compañeros"],
+    lluvia: ["llueve", "lluvia", "lluvioso", "tormenta", "llover", "mojado", "paraguas"],
+    sol: ["sol", "soleado", "calor", "playa", "verano", "soleado", "caliente"]
   };
 
   let context = "";
   const noteLower = note.toLowerCase();
   
+  // Debug: mostrar qué palabras se están buscando
+  console.log(`🔍 Buscando palabras clave en: "${noteLower}"`);
+  
   for (const [category, words] of Object.entries(keywords)) {
-    if (words.some(word => noteLower.includes(word))) {
+    const foundWords = words.filter(word => noteLower.includes(word));
+    if (foundWords.length > 0) {
+      console.log(`✅ Categoría detectada: ${category} - Palabras encontradas: ${foundWords.join(', ')}`);
+      
       switch (category) {
         case "trabajo":
           context = "wearing a tie and sitting at a computer desk with coffee";
@@ -57,6 +63,10 @@ function createPollinationsPrompt(note: string, moodType: string): string {
       }
       break;
     }
+  }
+  
+  if (!context) {
+    console.log(`❌ No se detectó contexto específico, usando mood por defecto`);
   }
 
   // Si no se detectó contexto específico, usar el mood
