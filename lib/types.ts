@@ -14,6 +14,9 @@ export interface MoodEntry {
   note: string | null
   entry_date: string
   mood_timestamp?: string | null
+  mood_image_url?: string | null
+  mood_image_model?: string | null
+  mood_image_prompt?: string | null
   created_at: string
   updated_at: string
 }

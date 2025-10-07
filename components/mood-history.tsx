@@ -192,6 +192,41 @@ export function MoodHistory({ username }: MoodHistoryProps) {
                   {mood.note ? (
                     <div className="space-y-3">
                       <p className="text-sm text-foreground leading-relaxed">{mood.note}</p>
+                      {mood.mood_image_url && (
+                        <div className="mt-2">
+                          <img
+                            src={mood.mood_image_url}
+                            alt={`Imagen generada para: ${mood.note.slice(0, 50)}...`}
+                            className="w-full max-w-xs rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow duration-200"
+                            onError={(e) => {
+                              // Fallback si la imagen falla al cargar
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'https://source.unsplash.com/400x400/?cute-cat';
+                              target.alt = 'Imagen por defecto - gatito lindo';
+                            }}
+                          />
+                          <div className="mt-1 space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                              🎨 Imagen generada por IA
+                            </p>
+                            {mood.mood_image_model && (
+                              <p className="text-xs text-blue-600 font-medium">
+                                🤖 Modelo: {mood.mood_image_model}
+                              </p>
+                            )}
+                            {mood.mood_image_prompt && (
+                              <details className="text-xs">
+                                <summary className="text-purple-600 font-medium cursor-pointer hover:text-purple-700">
+                                  📝 Ver prompt usado
+                                </summary>
+                                <div className="mt-1 p-2 bg-muted rounded text-xs text-muted-foreground max-w-md">
+                                  {mood.mood_image_prompt}
+                                </div>
+                              </details>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground italic">Sin nota</p>
