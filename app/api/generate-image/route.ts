@@ -37,11 +37,7 @@ export async function POST(request: NextRequest) {
         
         // Configuración para generación de imágenes
         const config = {
-          responseMimeType: 'image/jpeg',
-          imageGenerationConfig: {
-            numberOfImages: 1,
-            aspectRatio: '1:1',
-          }
+          responseMimeType: 'image/jpeg'
         };
         
         // Crear modelo específico con configuración de imagen
