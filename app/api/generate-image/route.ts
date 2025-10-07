@@ -7,8 +7,13 @@ function convertNoteToPrompt(note: string, moodType: string): string {
   // Seleccionar animal aleatoriamente
   const animal = Math.random() > 0.5 ? "cute dog" : "cute cat";
   
-  // Plantilla base universal que representa la idea de la nota CON EL ANIMAL
-  const baseTemplate = `Una escena visual que representa la idea o situación descrita en: "${note}". Incluye un ${animal} como protagonista principal de la escena. Describe la escena de manera imaginativa, incluyendo elementos relevantes y el ambiente general.`;
+  // Convertir mood a descripción emocional
+  const moodDescription = moodType === 'happy' ? 'feliz y alegre' : 
+                         moodType === 'neutral' ? 'neutral y tranquilo' : 
+                         'triste y melancólico';
+  
+  // Plantilla base universal que representa la idea de la nota CON EL ANIMAL Y MOOD
+  const baseTemplate = `Una escena visual que representa la idea o situación descrita en: "${note}". Incluye un ${animal} como protagonista principal de la escena, mostrando un estado de ánimo ${moodDescription}. Describe la escena de manera imaginativa, incluyendo elementos relevantes y el ambiente general.`;
   
   // Heurísticas ligeras para enriquecer el prompt (complementarias, no limitantes)
   const enhancements = [];
