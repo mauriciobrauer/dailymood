@@ -31,34 +31,34 @@ function createPollinationsPrompt(note: string, moodType: string): string {
       
       switch (category) {
         case "trabajo":
-          context = "wearing a tie and sitting at a computer desk with coffee";
+          context = "wearing a tiny business suit and sitting at a computer desk with coffee, looking stressed but determined";
           break;
         case "cansado":
-          context = "sleeping or yawning with tired eyes";
+          context = "sleeping peacefully with droopy eyes and a cute yawn, looking exhausted but adorable";
           break;
         case "feliz":
-          context = "smiling and playing with toys";
+          context = "jumping with joy and a huge smile, playing with colorful toys, looking absolutely delighted";
           break;
         case "triste":
-          context = "looking sad but still adorable with big eyes";
+          context = "looking melancholic with big sad eyes, maybe holding a tissue, but still incredibly cute";
           break;
         case "comida":
-          context = "surrounded by delicious food";
+          context = "sitting at a table surrounded by delicious food, looking excited and hungry, maybe with a bib";
           break;
         case "ejercicio":
-          context = "doing exercise or sports";
+          context = "wearing tiny workout clothes, lifting weights or running, looking determined and sweaty but cute";
           break;
         case "familia":
-          context = "with family members or loved ones";
+          context = "surrounded by other cute animals representing family, looking happy and loved";
           break;
         case "amigos":
-          context = "having fun with friends";
+          context = "playing and laughing with other cute animals, having a great time together";
           break;
         case "lluvia":
-          context = "playing in the rain with an umbrella";
+          context = "holding a tiny umbrella, splashing in puddles, looking playful despite the rain";
           break;
         case "sol":
-          context = "enjoying sunny weather at the beach";
+          context = "wearing sunglasses and relaxing at the beach, looking happy and sun-kissed";
           break;
       }
       break;
@@ -73,19 +73,20 @@ function createPollinationsPrompt(note: string, moodType: string): string {
   if (!context) {
     switch (moodType) {
       case "happy":
-        context = "very happy and playful with a big smile";
+        context = "jumping with joy and a huge smile, looking absolutely delighted and energetic";
         break;
       case "neutral":
-        context = "calm and relaxed";
+        context = "sitting calmly with a peaceful expression, looking content and relaxed";
         break;
       case "sad":
-        context = "a little sad but very cute with big expressive eyes";
+        context = "looking melancholic with big sad eyes, maybe holding a tissue, but still incredibly cute and lovable";
         break;
     }
   }
 
   // Pollinations.AI funciona mejor con prompts en inglés y más directos
-  return `${animal}, ${context}, cartoon style, colorful, adorable, funny, expressive, high quality, digital art`;
+  // Cambiar de cartoon a más realista pero manteniendo el humor
+  return `${animal}, ${context}, photorealistic style, cute and funny expression, realistic fur texture, adorable eyes, humorous situation, high quality, detailed, natural lighting`;
 }
 
 export async function POST(request: Request) {
