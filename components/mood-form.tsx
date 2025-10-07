@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Smile, Meh, Frown } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
-import { generateMoodImage, DEFAULT_MOOD_IMAGE } from "@/lib/image-generator"
 
 type MoodType = "happy" | "neutral" | "sad"
 
@@ -22,7 +21,6 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null)
   const [note, setNote] = useState("")
   const [isSaving, setIsSaving] = useState(false)
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
   const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +29,6 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
     if (!selectedMood) return
 
     setIsSaving(true)
-    setIsGeneratingImage(true)
 
     try {
       // Get user ID from username
@@ -45,106 +42,27 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
         throw new Error('Usuario no encontrado')
       }
 
-      // Generate image based on note and mood (only if note exists)
-      let imageUrl = null
-      let imageModel = null
-      let imagePrompt = null
-      
-      if (note.trim()) {
-        try {
-          const imageResult = await generateMoodImage({
-            note: note.trim(),
-            moodType: selectedMood
-          })
-          
-          if (imageResult.success && imageResult.imageUrl) {
-            imageUrl = imageResult.imageUrl
-            // Extraer información del modelo y prompt si está disponible
-            if (imageResult.debug) {
-              imageModel = imageResult.debug.model
-              imagePrompt = imageResult.debug.prompt
-            }
-          } else {
-            // Use fallback image if generation fails
-            imageUrl = DEFAULT_MOOD_IMAGE
-          }
-        } catch (imageError) {
-          console.error('Error generating image:', imageError)
-          // Use fallback image if generation fails
-          imageUrl = DEFAULT_MOOD_IMAGE
-        }
-      }
-
-      setIsGeneratingImage(false)
-
       // Insert new mood entry with current timestamp
       const now = new Date()
       const today = now.toISOString().split('T')[0] // YYYY-MM-DD format
       
-      // Try with mood_timestamp and image_url first, fallback to basic insert if columns don't exist
-      let insertError
-      
-      // Intentar insert con todos los campos nuevos primero
-      let result = await supabase
+      const { error: insertError } = await supabase
         .from('mood_entries')
         .insert({
           user_id: userData.id,
           mood_type: selectedMood,
           note: note.trim() || null,
           entry_date: today,
-          mood_timestamp: now.toISOString(),
-          mood_image_url: imageUrl,
-          mood_image_model: imageModel,
-          mood_image_prompt: imagePrompt
+          mood_timestamp: now.toISOString()
         })
-      
-      insertError = result.error
-      
-      // Si hay error de columna no encontrada, intentar fallback
-      if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('mood_image_model'))) {
-        console.log('Fallback: columnas de debug no existen, intentando sin ellas')
-        
-        result = await supabase
-          .from('mood_entries')
-          .insert({
-            user_id: userData.id,
-            mood_type: selectedMood,
-            note: note.trim() || null,
-            entry_date: today,
-            mood_timestamp: now.toISOString(),
-            mood_image_url: imageUrl
-          })
-        
-        insertError = result.error
-        
-        // Si aún hay error, intentar fallback final
-        if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('mood_image_url'))) {
-          console.log('Fallback 2: columnas de imagen no existen, insert básico')
-          
-          result = await supabase
-            .from('mood_entries')
-            .insert({
-              user_id: userData.id,
-              mood_type: selectedMood,
-              note: note.trim() || null,
-              entry_date: today
-            })
-          
-          insertError = result.error
-        }
-      }
 
       if (insertError) {
         throw insertError
       }
 
       // Show success message
-      const toastMessage = imageUrl 
-        ? "¡Estado de ánimo guardado con imagen personalizada! 🎨"
-        : "¡Estado de ánimo guardado!"
-        
       toast({
-        title: toastMessage,
+        title: "¡Estado de ánimo guardado!",
         description: "Tu entrada ha sido registrada exitosamente.",
       })
 
@@ -162,7 +80,6 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
       })
     } finally {
       setIsSaving(false)
-      setIsGeneratingImage(false)
     }
   }
 
@@ -225,11 +142,7 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
 
           {/* Submit Button */}
           <Button type="submit" disabled={!selectedMood || isSaving} className="w-full" size="lg">
-            {isSaving ? (
-              isGeneratingImage ? "🎨 Generando imagen..." : "Guardando..."
-            ) : (
-              "Guardar Estado de Ánimo"
-            )}
+            {isSaving ? "Guardando..." : "Guardar Estado de Ánimo"}
           </Button>
         </form>
       </CardContent>
