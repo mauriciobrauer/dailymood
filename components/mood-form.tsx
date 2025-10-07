@@ -241,118 +241,120 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
   ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>¿Cómo te sientes hoy?</CardTitle>
-        <CardDescription>Registra tu estado de ánimo y añade una nota opcional</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Mood Buttons */}
-          <div className="grid grid-cols-3 gap-4">
-            {moodButtons.map((mood) => {
-              const Icon = mood.icon
-              const isSelected = selectedMood === mood.type
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>¿Cómo te sientes hoy?</CardTitle>
+          <CardDescription>Registra tu estado de ánimo y añade una nota opcional</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Mood Buttons */}
+            <div className="grid grid-cols-3 gap-4">
+              {moodButtons.map((mood) => {
+                const Icon = mood.icon
+                const isSelected = selectedMood === mood.type
 
-              return (
-                <button
-                  key={mood.type}
-                  type="button"
-                  onClick={() => setSelectedMood(mood.type)}
-                  className={`
-                    flex flex-col items-center justify-center gap-3 p-6 rounded-lg
-                    transition-all duration-200 border-2
-                    ${
-                      isSelected
-                        ? `${mood.color} border-transparent scale-105 shadow-lg`
-                        : "bg-card border-border hover:border-muted-foreground/50"
-                    }
-                  `}
-                >
-                  <Icon className={`w-12 h-12 ${isSelected ? "text-white" : "text-muted-foreground"}`} />
-                  <span className={`font-medium ${isSelected ? "text-white" : "text-foreground"}`}>{mood.label}</span>
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <button
+                    key={mood.type}
+                    type="button"
+                    onClick={() => setSelectedMood(mood.type)}
+                    className={`
+                      flex flex-col items-center justify-center gap-3 p-6 rounded-lg
+                      transition-all duration-200 border-2
+                      ${
+                        isSelected
+                          ? `${mood.color} border-transparent scale-105 shadow-lg`
+                          : "bg-card border-border hover:border-muted-foreground/50"
+                      }
+                    `}
+                  >
+                    <Icon className={`w-12 h-12 ${isSelected ? "text-white" : "text-muted-foreground"}`} />
+                    <span className={`font-medium ${isSelected ? "text-white" : "text-foreground"}`}>{mood.label}</span>
+                  </button>
+                )
+              })}
+            </div>
 
-          {/* Note Field */}
-          <div className="space-y-2">
-            <label htmlFor="note" className="text-sm font-medium">
-              Nota (opcional)
-            </label>
-            <Textarea
-              id="note"
-              placeholder="¿Qué pasó hoy? ¿Cómo te sientes?"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              className="resize-none"
-            />
-          </div>
-
-          {/* Submit Button */}
-          <Button type="submit" disabled={!selectedMood || isSaving} className="w-full" size="lg">
-            {isSaving ? (
-              isGeneratingImage ? "🎨 Generando imagen..." : "Guardando..."
-            ) : (
-              "Guardar Estado de Ánimo"
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
-
-    {/* Dialog para mostrar la imagen generada */}
-    <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center">🎨 ¡Tu imagen personalizada!</DialogTitle>
-          <DialogDescription className="text-center">
-            {selectedMood && note && generatePositiveMessage(selectedMood, note).moodMessage}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          {/* Imagen generada */}
-          {generatedImageUrl && (
-            <div className="relative">
-              <img 
-                src={generatedImageUrl} 
-                alt="Imagen generada para tu estado de ánimo"
-                className="w-full h-64 object-cover rounded-lg border"
-                onError={(e) => {
-                  // Fallback si la imagen no carga
-                  e.currentTarget.src = DEFAULT_MOOD_IMAGE
-                }}
+            {/* Note Field */}
+            <div className="space-y-2">
+              <label htmlFor="note" className="text-sm font-medium">
+                Nota (opcional)
+              </label>
+              <Textarea
+                id="note"
+                placeholder="¿Qué pasó hoy? ¿Cómo te sientes?"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                className="resize-none"
               />
             </div>
-          )}
-          
-          {/* Mensaje positivo personalizado */}
-          {selectedMood && note && (
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                {generatePositiveMessage(selectedMood, note).noteMessage}
-              </p>
-              {note && (
-                <p className="text-xs text-muted-foreground italic">
-                  "{note}"
-                </p>
+
+            {/* Submit Button */}
+            <Button type="submit" disabled={!selectedMood || isSaving} className="w-full" size="lg">
+              {isSaving ? (
+                isGeneratingImage ? "🎨 Generando imagen..." : "Guardando..."
+              ) : (
+                "Guardar Estado de Ánimo"
               )}
-            </div>
-          )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Dialog para mostrar la imagen generada */}
+      <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">🎨 ¡Tu imagen personalizada!</DialogTitle>
+            <DialogDescription className="text-center">
+              {selectedMood && note && generatePositiveMessage(selectedMood, note).moodMessage}
+            </DialogDescription>
+          </DialogHeader>
           
-          {/* Botón para cerrar */}
-          <Button 
-            onClick={handleCloseDialog} 
-            className="w-full"
-            size="lg"
-          >
-            ¡Gracias! Cerrar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          <div className="space-y-4">
+            {/* Imagen generada */}
+            {generatedImageUrl && (
+              <div className="relative">
+                <img 
+                  src={generatedImageUrl} 
+                  alt="Imagen generada para tu estado de ánimo"
+                  className="w-full h-64 object-cover rounded-lg border"
+                  onError={(e) => {
+                    // Fallback si la imagen no carga
+                    e.currentTarget.src = DEFAULT_MOOD_IMAGE
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* Mensaje positivo personalizado */}
+            {selectedMood && note && (
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {generatePositiveMessage(selectedMood, note).noteMessage}
+                </p>
+                {note && (
+                  <p className="text-xs text-muted-foreground italic">
+                    "{note}"
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Botón para cerrar */}
+            <Button 
+              onClick={handleCloseDialog} 
+              className="w-full"
+              size="lg"
+            >
+              ¡Gracias! Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
