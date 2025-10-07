@@ -6,7 +6,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Smile, Meh, Frown } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Smile, Meh, Frown, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import { generateMoodImage, DEFAULT_MOOD_IMAGE } from "@/lib/image-generator"
@@ -23,7 +24,68 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
   const [note, setNote] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+  const [showImageDialog, setShowImageDialog] = useState(false)
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
   const { toast } = useToast()
+
+  // Función para generar mensaje positivo basado en mood y nota
+  const generatePositiveMessage = (mood: MoodType, note: string) => {
+    const moodMessages = {
+      happy: [
+        "¡Qué genial que te sientas feliz! 😊",
+        "¡Me alegra saber que estás de buen humor! 🌟",
+        "¡Qué bueno que tengas un día alegre! ✨",
+        "¡Tu felicidad es contagiosa! 🎉"
+      ],
+      neutral: [
+        "Es perfectamente normal sentirse neutral. 😌",
+        "Los días tranquilos también son valiosos. 🌸",
+        "A veces necesitamos estos momentos de calma. 🕊️",
+        "Tu equilibrio emocional es admirable. ⚖️"
+      ],
+      sad: [
+        "Es valiente que compartas cómo te sientes. 💙",
+        "Los días difíciles también pasan. 🌈",
+        "Reconocer tus emociones es el primer paso. 🤗",
+        "Está bien no estar bien a veces. 💜"
+      ]
+    }
+
+    const noteMessages = {
+      happy: [
+        "Gracias por compartir tu alegría con nosotros.",
+        "Es hermoso ver cómo disfrutas los pequeños momentos.",
+        "Tu positividad ilumina el día de todos.",
+        "Que sigas teniendo muchos momentos así."
+      ],
+      neutral: [
+        "Gracias por ser honesto sobre cómo te sientes.",
+        "Cada día es una oportunidad de crecimiento.",
+        "Tu autenticidad es muy valiosa.",
+        "Es importante escuchar todas nuestras emociones."
+      ],
+      sad: [
+        "Gracias por confiar en nosotros con tus sentimientos.",
+        "Recuerda que no estás solo en esto.",
+        "Es valiente expresar lo que sientes.",
+        "Cada día es una nueva oportunidad."
+      ]
+    }
+
+    const moodMessage = moodMessages[mood][Math.floor(Math.random() * moodMessages[mood].length)]
+    const noteMessage = noteMessages[mood][Math.floor(Math.random() * noteMessages[mood].length)]
+    
+    return { moodMessage, noteMessage }
+  }
+
+  // Función para cerrar el dialog y resetear el formulario
+  const handleCloseDialog = () => {
+    setShowImageDialog(false)
+    setGeneratedImageUrl(null)
+    setSelectedMood(null)
+    setNote("")
+    onMoodSaved()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -148,10 +210,16 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
         description: "Tu entrada ha sido registrada exitosamente.",
       })
 
-      // Reset form
-      setSelectedMood(null)
-      setNote("")
-      onMoodSaved()
+      // Si se generó una imagen, mostrar el dialog
+      if (imageUrl) {
+        setGeneratedImageUrl(imageUrl)
+        setShowImageDialog(true)
+      } else {
+        // Reset form solo si no hay imagen
+        setSelectedMood(null)
+        setNote("")
+        onMoodSaved()
+      }
 
     } catch (error) {
       console.error('Error saving mood:', error)
@@ -234,5 +302,57 @@ export function MoodForm({ username, onMoodSaved }: MoodFormProps) {
         </form>
       </CardContent>
     </Card>
+
+    {/* Dialog para mostrar la imagen generada */}
+    <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-center">🎨 ¡Tu imagen personalizada!</DialogTitle>
+          <DialogDescription className="text-center">
+            {selectedMood && note && generatePositiveMessage(selectedMood, note).moodMessage}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {/* Imagen generada */}
+          {generatedImageUrl && (
+            <div className="relative">
+              <img 
+                src={generatedImageUrl} 
+                alt="Imagen generada para tu estado de ánimo"
+                className="w-full h-64 object-cover rounded-lg border"
+                onError={(e) => {
+                  // Fallback si la imagen no carga
+                  e.currentTarget.src = DEFAULT_MOOD_IMAGE
+                }}
+              />
+            </div>
+          )}
+          
+          {/* Mensaje positivo personalizado */}
+          {selectedMood && note && (
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {generatePositiveMessage(selectedMood, note).noteMessage}
+              </p>
+              {note && (
+                <p className="text-xs text-muted-foreground italic">
+                  "{note}"
+                </p>
+              )}
+            </div>
+          )}
+          
+          {/* Botón para cerrar */}
+          <Button 
+            onClick={handleCloseDialog} 
+            className="w-full"
+            size="lg"
+          >
+            ¡Gracias! Cerrar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
