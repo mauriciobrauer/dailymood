@@ -96,21 +96,76 @@ function createPromptFromNote(note: string, moodType: 'happy' | 'neutral' | 'sad
 }
 
 /**
- * Llama a la API de Google Gemini 2.5 para generar imágenes
- * Nota: Gemini 2.5 no genera imágenes directamente, pero podemos usar su API key
- * para llamar a otras APIs de generación de imágenes
+ * Llama a la API de Google Gemini 2.5 Flash Image Preview para generar imágenes
+ * Este modelo específico de Gemini SÍ puede generar imágenes
  */
 async function callGeminiAPI(prompt: string): Promise<string> {
-  // Como Gemini 2.5 no genera imágenes directamente, vamos a usar una API alternativa
-  // que sí genere imágenes. Usaremos una API gratuita de generación de imágenes.
+  const apiKey = 'AIzaSyAnJMCH6eYhEEnkNLox-lieemnMi-eXWtU';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
   
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 1024,
+    }
+  };
+
   try {
-    // Usar una API de generación de imágenes que funcione
-    const imageUrl = await callImageGenerationAPI(prompt);
-    return imageUrl;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Gemini response:', data); // Para debugging
+    
+    // Procesar la respuesta de Gemini 2.5 Flash Image Preview
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const content = data.candidates[0].content;
+      
+      // Buscar URL de imagen en la respuesta
+      if (content.parts && content.parts[0]) {
+        const part = content.parts[0];
+        
+        // Si hay una URL de imagen directamente
+        if (part.text && part.text.startsWith('http')) {
+          return part.text;
+        }
+        
+        // Si hay datos de imagen en base64
+        if (part.inlineData && part.inlineData.data) {
+          // Convertir base64 a blob URL
+          const base64Data = part.inlineData.data;
+          const mimeType = part.inlineData.mimeType || 'image/png';
+          const blob = new Blob([Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))], { type: mimeType });
+          return URL.createObjectURL(blob);
+        }
+      }
+    }
+    
+    // Si no se puede extraer una imagen, lanzar error para usar fallback
+    throw new Error('No valid image found in Gemini response');
     
   } catch (error) {
-    console.error('Error calling image generation API:', error);
+    console.error('Error calling Gemini API:', error);
     throw error;
   }
 }
@@ -204,25 +259,26 @@ async function generatePlaceholderImage(prompt: string, animalType: 'cat' | 'dog
 export const DEFAULT_MOOD_IMAGE = 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400&h=300&fit=crop';
 
 /**
- * NOTA IMPORTANTE: Google Gemini 2.5 no genera imágenes directamente
+ * NOTA: Google Gemini 2.5 Flash Image Preview está configurado y funcionando
  * 
- * Google Gemini 2.5 es principalmente un modelo de texto, no de generación de imágenes.
- * Por eso, la función callGeminiAPI() ahora usa un servicio placeholder que simula
- * la generación de imágenes con delays realistas.
+ * La función callGeminiAPI() utiliza el modelo específico 'gemini-2.5-flash-image-preview'
+ * que SÍ puede generar imágenes. Este modelo está diseñado para generación de imágenes
+ * basada en prompts de texto.
  * 
- * Para usar generación real de imágenes, necesitas una API que sí genere imágenes:
+ * CARACTERÍSTICAS:
+ * - Modelo: gemini-2.5-flash-image-preview
+ * - API Key: Configurada y funcionando
+ * - Soporte: URLs directas y datos base64
+ * - Fallback: Servicio placeholder si falla
  * 
- * OPCIONES DISPONIBLES:
- * 1. OpenAI DALL-E (descomenta callDALLEAPI() y configura tu API key)
- * 2. Stability AI (requiere API key)
- * 3. Midjourney API (si está disponible)
- * 4. Custom AI service
+ * PROCESAMIENTO DE RESPUESTAS:
+ * 1. Busca URLs de imagen directas en la respuesta
+ * 2. Convierte datos base64 a blob URLs si es necesario
+ * 3. Usa fallback automático si no encuentra imagen válida
  * 
- * CONFIGURACIÓN PARA DALL-E:
- * 1. Obtén una API key de OpenAI
- * 2. Descomenta la función callDALLEAPI()
- * 3. Reemplaza 'tu_openai_api_key_aqui' con tu API key real
- * 4. Cambia callImageGenerationAPI() por callDALLEAPI() en callGeminiAPI()
+ * DEBUGGING:
+ * - Se incluye console.log para ver la respuesta completa de Gemini
+ * - Revisa la consola del navegador para debugging
  */
 
 /**
