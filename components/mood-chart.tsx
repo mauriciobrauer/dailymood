@@ -297,9 +297,10 @@ export function MoodChart({ username }: MoodChartProps) {
                   stroke="hsl(var(--primary))" 
                   strokeWidth={2}
                   dot={(props) => {
-                    const { cx, cy, payload } = props
+                    const { cx, cy, payload, index } = props
                     return (
                       <circle
+                        key={`dot-${index}-${payload.xIndex}`}
                         cx={cx}
                         cy={cy}
                         r={4}
