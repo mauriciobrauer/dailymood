@@ -110,6 +110,7 @@ async function callGeminiAPI(prompt: string): Promise<string> {
     
     // Intentar diferentes modelos de Gemini que puedan generar imágenes
     const models = [
+      'gemini-2.5-flash-image-preview',  // Modelo específico para imágenes
       'gemini-2.0-flash-exp',
       'gemini-1.5-flash',
       'gemini-1.5-pro'
@@ -277,9 +278,10 @@ export const DEFAULT_MOOD_IMAGE = 'https://images.unsplash.com/photo-15187918412
  * La función callGeminiAPI() utiliza la librería oficial de Google:
  * - Librería: @google/genai (GoogleGenerativeAI)
  * - Modelos intentados en orden:
- *   1. gemini-2.0-flash-exp (experimental)
- *   2. gemini-1.5-flash (rápido)
- *   3. gemini-1.5-pro (avanzado)
+ *   1. gemini-2.5-flash-image-preview (específico para imágenes)
+ *   2. gemini-2.0-flash-exp (experimental)
+ *   3. gemini-1.5-flash (rápido)
+ *   4. gemini-1.5-pro (avanzado)
  * 
  * CARACTERÍSTICAS:
  * - Librería oficial: @google/genai para mejor compatibilidad
