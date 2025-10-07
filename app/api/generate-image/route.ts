@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as genai from '@google/genai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,10 +15,12 @@ export async function POST(request: NextRequest) {
     const apiKey = 'AIzaSyAnJMCH6eYhEEnkNLox-lieemnMi-eXWtU';
     
     // Inicializar el cliente de Google Generative AI
-    const genAI = new genai.GoogleGenAI(apiKey);
+    const genAI = new GoogleGenerativeAI(apiKey);
     
     // Crear prompt basado en la nota del usuario
     const prompt = createPromptFromNote(note, moodType);
+    
+    console.log(`🎨 Generando imagen para: "${prompt.substring(0, 50)}..."`);
     
     // Intentar diferentes modelos de Gemini que puedan generar imágenes
     const models = [
@@ -33,37 +35,47 @@ export async function POST(request: NextRequest) {
         console.log(`🎨 Intentando modelo: ${modelName}`);
         console.log(`📝 Prompt generado: ${prompt.substring(0, 200)}...`);
         
-        // Usar la API correcta de @google/genai para generar imágenes
-        const result = await genAI.models.generateImages({
-          model: modelName,
-          prompt: prompt
+        // Crear modelo específico
+        const model = genAI.getGenerativeModel({ 
+          model: modelName
         });
+        
+        // Usar la API correcta de @google/generative-ai para generar imágenes
+        const result = await model.generateContent(prompt);
         
         console.log(`✅ Respuesta del modelo ${modelName}:`, JSON.stringify(result, null, 2));
         
-        // Buscar URLs de imagen en la respuesta
-        if (result.images && result.images.length > 0) {
-          const imageUrl = result.images[0].url || result.images[0].data;
+        // Procesar la Respuesta Multimodal
+        const imagePart = result.response.candidates?.[0]?.content?.parts?.find(
+          (part: any) => part.inlineData && part.inlineData.mimeType.startsWith('image/')
+        );
+
+        if (imagePart && imagePart.inlineData) {
+          const imageBase64 = imagePart.inlineData.data;
+          const mimeType = imagePart.inlineData.mimeType || 'image/jpeg';
           
-          if (imageUrl) {
-            console.log(`🎉 Imagen generada exitosamente con modelo: ${modelName}`);
-            console.log(`🔗 URL de imagen: ${imageUrl}`);
-            return NextResponse.json({ 
-              success: true, 
-              imageUrl,
+          // Convertir base64 a blob URL
+          const blobUrl = convertBase64ToBlobUrl(imageBase64);
+          
+          console.log(`🎉 Imagen generada exitosamente con modelo: ${modelName}`);
+          console.log(`🔗 Tipo MIME: ${mimeType}`);
+          
+          return NextResponse.json({ 
+            success: true, 
+            imageUrl: blobUrl,
+            model: modelName,
+            prompt: prompt,
+            debug: {
               model: modelName,
               prompt: prompt,
-              debug: {
-                model: modelName,
-                prompt: prompt,
-                response: result
-              }
-            });
-          }
+              mimeType: mimeType,
+              response: result
+            }
+          });
         }
         
-        // Si no hay imágenes en la respuesta, buscar en el texto
-        const text = result.text || result.response?.text() || '';
+        // Si no hay imagen en la respuesta, buscar en el texto
+        const text = result.response.text() || '';
         const imageUrl = extractImageUrl(text);
         
         if (imageUrl) {
@@ -82,7 +94,7 @@ export async function POST(request: NextRequest) {
           });
         }
         
-        // Si no hay URL directa, buscar datos base64
+        // Si no hay URL directa, buscar datos base64 en el texto
         const base64Data = extractBase64Data(text);
         if (base64Data) {
           const blobUrl = convertBase64ToBlobUrl(base64Data);
@@ -113,7 +125,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       imageUrl: placeholderUrl,
-      model: 'placeholder' 
+      model: 'placeholder',
+      prompt: prompt,
+      debug: {
+        model: 'placeholder',
+        prompt: prompt,
+        response: 'All models failed'
+      }
     });
 
   } catch (error) {
@@ -202,7 +220,7 @@ function convertBase64ToBlobUrl(base64Data: string): string {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
     const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'image/png' });
+    const blob = new Blob([byteArray], { type: 'image/jpeg' });
     
     // Crear URL del blob
     return URL.createObjectURL(blob);
