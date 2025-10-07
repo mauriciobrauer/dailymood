@@ -37,10 +37,13 @@ export async function generateMoodImage(options: ImageGenerationOptions): Promis
     });
     
     if (!response.ok) {
-      throw new Error(`API Route error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('API Route error response:', errorText);
+      throw new Error(`API Route error: ${response.status} ${response.statusText} - ${errorText}`);
     }
     
     const result = await response.json();
+    console.log('API Route result:', result);
     
     if (result.success && result.imageUrl) {
       return {
@@ -48,7 +51,8 @@ export async function generateMoodImage(options: ImageGenerationOptions): Promis
         imageUrl: result.imageUrl
       };
     } else {
-      throw new Error('API Route returned unsuccessful result');
+      console.error('API Route returned unsuccessful result:', result);
+      throw new Error(`API Route returned unsuccessful result: ${result.error || 'Unknown error'}`);
     }
     
   } catch (error) {
