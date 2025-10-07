@@ -70,16 +70,17 @@ export async function generateMoodImage(options: ImageGenerationOptions): Promis
 }
 
 /**
- * Genera una imagen placeholder usando Lorem Picsum
+ * Genera una imagen placeholder de gatitos/perritos usando Unsplash
  */
 function generatePlaceholderImage(): string {
+  const animals = ['cat', 'dog', 'kitten', 'puppy'];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
   const width = 400;
-  const height = 300;
-  const seed = Math.floor(Math.random() * 1000);
-  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
+  const height = 400;
+  return `https://source.unsplash.com/${width}x${height}/?${animal}&cute`;
 }
 
 /**
  * Imagen por defecto para mostrar cuando no se puede generar una imagen
  */
-export const DEFAULT_MOOD_IMAGE = 'https://picsum.photos/400/300?random=1';
+export const DEFAULT_MOOD_IMAGE = 'https://source.unsplash.com/400x400/?cute-cat';
