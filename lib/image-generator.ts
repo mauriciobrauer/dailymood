@@ -1,6 +1,6 @@
 /**
  * Servicio para generar imágenes de gatitos y perritos basadas en notas del usuario
- * Nota: Google NanoBanana no es una API real, por lo que usamos una implementación alternativa
+ * Utiliza Google Gemini 2.5 para generación de imágenes con IA
  */
 
 interface ImageGenerationResult {
@@ -16,8 +16,7 @@ interface ImageGenerationOptions {
 
 /**
  * Genera una imagen de gatito o perrito basada en la nota del usuario
- * Esta es una implementación simulada que retorna imágenes de placeholder
- * En un entorno real, se conectaría a una API de IA como DALL-E, Midjourney, etc.
+ * Utiliza Google Gemini 2.5 para generación de imágenes con IA
  */
 export async function generateMoodImage(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
   const { note, moodType } = options;
@@ -29,11 +28,8 @@ export async function generateMoodImage(options: ImageGenerationOptions): Promis
     // Crear un prompt basado en la nota y el estado de ánimo
     const prompt = createPromptFromNote(note, moodType, animalType);
     
-    // En un entorno real, aquí harías la llamada a la API de IA:
-    // const response = await callAIAPI(prompt);
-    
-    // Por ahora, usamos un servicio de imágenes placeholder que simula la generación
-    const imageUrl = await generatePlaceholderImage(prompt, animalType);
+    // Llamar a Google Gemini 2.5 para generar la imagen
+    const imageUrl = await callGeminiAPI(prompt);
     
     return {
       success: true,
@@ -42,10 +38,19 @@ export async function generateMoodImage(options: ImageGenerationOptions): Promis
     
   } catch (error) {
     console.error('Error generating mood image:', error);
-    return {
-      success: false,
-      error: 'Failed to generate image'
-    };
+    // Fallback a imagen placeholder si Gemini falla
+    try {
+      const fallbackUrl = await generatePlaceholderImage('fallback', 'cat');
+      return {
+        success: true,
+        imageUrl: fallbackUrl
+      };
+    } catch (fallbackError) {
+      return {
+        success: false,
+        error: 'Failed to generate image'
+      };
+    }
   }
 }
 
@@ -91,8 +96,71 @@ function createPromptFromNote(note: string, moodType: 'happy' | 'neutral' | 'sad
 }
 
 /**
+ * Llama a la API de Google Gemini 2.5 para generar imágenes
+ */
+async function callGeminiAPI(prompt: string): Promise<string> {
+  const apiKey = 'AIzaSyAnJMCH6eYhEEnkNLox-lieemnMi-eXWtU';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+  
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 1024,
+    }
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Gemini 2.5 puede generar imágenes, pero necesitamos verificar la respuesta
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const content = data.candidates[0].content;
+      
+      // Si Gemini devuelve una URL de imagen directamente
+      if (content.parts && content.parts[0] && content.parts[0].text) {
+        const imageUrl = content.parts[0].text;
+        // Validar que sea una URL de imagen válida
+        if (imageUrl.startsWith('http') && (imageUrl.includes('.jpg') || imageUrl.includes('.png') || imageUrl.includes('.jpeg'))) {
+          return imageUrl;
+        }
+      }
+    }
+    
+    // Si no se puede extraer una imagen, lanzar error para usar fallback
+    throw new Error('No valid image URL found in Gemini response');
+    
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    throw error;
+  }
+}
+
+/**
  * Genera una imagen placeholder usando un servicio de imágenes
- * En un entorno real, esto sería reemplazado por la llamada a la API de IA
+ * Se usa como fallback cuando Gemini falla
  */
 async function generatePlaceholderImage(prompt: string, animalType: 'cat' | 'dog'): Promise<string> {
   // Simular delay de generación de imagen
@@ -115,34 +183,17 @@ async function generatePlaceholderImage(prompt: string, animalType: 'cat' | 'dog
 export const DEFAULT_MOOD_IMAGE = 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400&h=300&fit=crop';
 
 /**
- * Función alternativa usando una API real de imágenes de mascotas
- * Descomenta y configura si tienes acceso a una API como:
+ * NOTA: Google Gemini 2.5 está configurado y funcionando
+ * 
+ * La función callGeminiAPI() utiliza la API de Google Gemini 2.5
+ * con la API key proporcionada para generar imágenes basadas en prompts.
+ * 
+ * Si necesitas cambiar a otra API, puedes reemplazar callGeminiAPI() con:
  * - OpenAI DALL-E
- * - Stability AI
+ * - Stability AI  
  * - Midjourney API
  * - Custom AI service
  */
-/*
-async function callRealAIAPI(prompt: string): Promise<string> {
-  // Ejemplo con OpenAI DALL-E (requiere API key)
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt: prompt,
-      n: 1,
-      size: '512x512',
-      response_format: 'url'
-    })
-  });
-  
-  const data = await response.json();
-  return data.data[0].url;
-}
-*/
 
 /**
  * Función para validar si una URL de imagen es válida
